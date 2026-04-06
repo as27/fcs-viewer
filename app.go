@@ -24,7 +24,7 @@ type ExternalConfig struct {
 	Version     string       `yaml:"version"`
 	GeneratedAt string       `yaml:"generated_at"`
 	Departments []Department `yaml:"departments"`
-	Vars        struct {
+	Vars struct {
 		BaseURL string `yaml:"base_url"`
 		Token   string `yaml:"token"`
 	} `yaml:"vars"`
@@ -50,7 +50,9 @@ type MemberRow struct {
 	Zip              string `json:"zip"`
 	City             string `json:"city"`
 	JoinDate         string `json:"joinDate"`
+	ResignationDate  string `json:"resignationDate"`
 	Groups           string `json:"groups"`
+	GroupShorts      string `json:"groupShorts"`
 }
 
 // GroupDetail holds resolved details for a single member group.
@@ -70,11 +72,12 @@ type DepartmentDetail struct {
 
 // Settings holds the current app settings for the frontend.
 type Settings struct {
-	PublicKey   string `json:"publicKey"`
-	BaseURL     string `json:"baseURL"`
-	TokenMasked string `json:"tokenMasked"`
-	ConfigURL   string `json:"configURL"`
-	ConfigError string `json:"configError"`
+	PublicKey     string   `json:"publicKey"`
+	BaseURL       string   `json:"baseURL"`
+	TokenMasked   string   `json:"tokenMasked"`
+	ConfigURL     string   `json:"configURL"`
+	ConfigError   string   `json:"configError"`
+	ActiveModules []string `json:"activeModules"`
 }
 
 // App is the main Wails application struct.
@@ -184,6 +187,7 @@ func (a *App) GetSettings() Settings {
 
 	s.ConfigError = a.confErr
 	if a.extConf != nil {
+		s.ActiveModules = Conf.ActiveModules
 		s.BaseURL = a.extConf.Vars.BaseURL
 		tok := a.extConf.Vars.Token
 		if len(tok) > 8 {
@@ -203,9 +207,15 @@ func (a *App) GetDepartments() []string {
 	if a.extConf == nil {
 		return nil
 	}
-	names := make([]string, len(a.extConf.Departments))
-	for i, d := range a.extConf.Departments {
-		names[i] = d.Name
+	filter := make(map[string]bool, len(Conf.ActiveDepartments))
+	for _, n := range Conf.ActiveDepartments {
+		filter[n] = true
+	}
+	var names []string
+	for _, d := range a.extConf.Departments {
+		if len(filter) == 0 || filter[d.Name] {
+			names = append(names, d.Name)
+		}
 	}
 	return names
 }
@@ -321,18 +331,28 @@ func (a *App) loadMembers(department string) ([]MemberRow, error) {
 		return nil, fmt.Errorf("Gruppen konnten nicht aufgelöst werden: %w", err)
 	}
 
-	// Fetch members
-	opts := &easyvapi.MemberListOptions{
-		MemberGroups: groupIDs,
-	}
-	members, err := client.Members.ListAll(a.ctx, opts)
-	if err != nil {
-		return nil, fmt.Errorf("Mitglieder konnten nicht geladen werden: %w", err)
-	}
-
-	rows := make([]MemberRow, 0, len(members))
-	for _, m := range members {
-		rows = append(rows, memberToRow(m))
+	// Fetch members per group separately (API uses AND for multiple group IDs)
+	// and deduplicate by member ID.
+	seen := make(map[int]bool)
+	var rows []MemberRow
+	for _, gid := range groupIDs {
+		opts := &easyvapi.MemberListOptions{
+			MemberGroups: []int{gid},
+		}
+		members, err := client.Members.ListAll(a.ctx, opts)
+		if err != nil {
+			return nil, fmt.Errorf("Mitglieder für Gruppe %d konnten nicht geladen werden: %w", gid, err)
+		}
+		today := time.Now().Format("2006-01-02")
+		for _, m := range members {
+			if !seen[m.ID] {
+				if m.ResignationDate != "" && dateOnly(m.ResignationDate) < today {
+					continue
+				}
+				seen[m.ID] = true
+				rows = append(rows, memberToRow(m))
+			}
+		}
 	}
 
 	a.mu.Lock()
@@ -515,10 +535,13 @@ func dateOnly(s string) string {
 }
 
 func memberToRow(m model.Member) MemberRow {
-	var groups []string
+	var groups, shorts []string
 	for _, mg := range m.MemberGroups {
-		if mg.Name != "" {
-			groups = append(groups, mg.Name)
+		if mg.MemberGroup.Name != "" {
+			groups = append(groups, mg.MemberGroup.Name)
+		}
+		if mg.MemberGroup.Short != "" {
+			shorts = append(shorts, mg.MemberGroup.Short)
 		}
 	}
 
@@ -536,6 +559,8 @@ func memberToRow(m model.Member) MemberRow {
 		Zip:              cd.Zip,
 		City:             cd.City,
 		JoinDate:         dateOnly(m.JoinDate),
+		ResignationDate:  dateOnly(m.ResignationDate),
 		Groups:           strings.Join(groups, ", "),
+		GroupShorts:      strings.Join(shorts, ", "),
 	}
 }

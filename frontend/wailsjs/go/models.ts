@@ -110,7 +110,9 @@ export namespace main {
 	    zip: string;
 	    city: string;
 	    joinDate: string;
+	    resignationDate: string;
 	    groups: string;
+	    groupShorts: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new MemberRow(source);
@@ -130,7 +132,9 @@ export namespace main {
 	        this.zip = source["zip"];
 	        this.city = source["city"];
 	        this.joinDate = source["joinDate"];
+	        this.resignationDate = source["resignationDate"];
 	        this.groups = source["groups"];
+	        this.groupShorts = source["groupShorts"];
 	    }
 	}
 	export class Settings {
@@ -139,6 +143,7 @@ export namespace main {
 	    tokenMasked: string;
 	    configURL: string;
 	    configError: string;
+	    activeModules: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -151,6 +156,7 @@ export namespace main {
 	        this.tokenMasked = source["tokenMasked"];
 	        this.configURL = source["configURL"];
 	        this.configError = source["configError"];
+	        this.activeModules = source["activeModules"];
 	    }
 	}
 

@@ -114,6 +114,32 @@ func (g *MemberGroup) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MemberGroupMembership is the M2M through-table record returned by the API
+// when querying memberGroups on a Member. Each entry has its own relation ID
+// and a nested MemberGroup object with the actual group details.
+type MemberGroupMembership struct {
+	// ID is the unique identifier of the membership relation (not the group ID).
+	ID int `json:"id"`
+	// MemberGroup contains the actual group details.
+	MemberGroup MemberGroup `json:"memberGroup"`
+}
+
+// UnmarshalJSON handles the case where the API returns either a URL string or
+// a full MemberGroupMembership object.
+func (m *MemberGroupMembership) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		return nil
+	}
+	type alias MemberGroupMembership
+	var a alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return fmt.Errorf("model: unmarshal MemberGroupMembership: %w", err)
+	}
+	*m = MemberGroupMembership(a)
+	return nil
+}
+
 // MemberGroupCreate contains the fields for creating or updating a member group
 // via POST / PATCH /member-group.
 type MemberGroupCreate struct {
@@ -146,8 +172,9 @@ type Member struct {
 	IsApplication bool `json:"isApplication"`
 	// ContactDetails contains the member's personal and address information.
 	ContactDetails *ContactDetails `json:"contactDetails"`
-	// MemberGroups is the list of groups this member belongs to.
-	MemberGroups []MemberGroup `json:"memberGroups"`
+	// MemberGroups is the list of M2M membership records for this member.
+	// Each entry contains the relation ID and the nested MemberGroup details.
+	MemberGroups []MemberGroupMembership `json:"memberGroups"`
 	// RelatedMember may be returned as an integer ID or as a nested Member object,
 	// typically representing a related family member or sponsor.
 	RelatedMember *Member `json:"-"`
@@ -167,7 +194,7 @@ type memberJSON struct {
 	IsBlocked              bool            `json:"isBlocked"`
 	IsApplication          bool            `json:"isApplication"`
 	ContactDetails         *ContactDetails `json:"contactDetails"`
-	MemberGroups           []MemberGroup   `json:"memberGroups"`
+	MemberGroups           []MemberGroupMembership `json:"memberGroups"`
 	RelatedMember          json.RawMessage `json:"_relatedMember"`
 }
 

@@ -42,6 +42,7 @@ const ICONS = {
 // ── State ──────────────────────────────────────────────────────────────────────
 const state = {
     activeTab: 'members',
+    activeModules: null, // null = noch nicht geladen (alle sichtbar)
     departments: [],
     selectedDept: '',
     members: [],
@@ -78,7 +79,9 @@ const state = {
         { key: 'zip',              label: 'PLZ',           visible: false },
         { key: 'city',             label: 'Stadt',         visible: false },
         { key: 'joinDate',         label: 'Eintritt',      visible: false },
+        { key: 'resignationDate',  label: 'Austritt',      visible: false },
         { key: 'groups',           label: 'Gruppen',       visible: true  },
+        { key: 'groupShorts',      label: 'Kürzel',        visible: true  },
     ],
 };
 
@@ -126,6 +129,12 @@ function render() {
     attachListeners();
 }
 
+function isModuleActive(key) {
+    // Wenn keine Liste konfiguriert ist, sind alle Module aktiv.
+    if (!state.activeModules || state.activeModules.length === 0) return true;
+    return state.activeModules.includes(key);
+}
+
 function renderSidebar() {
     const nav = (tab, icon, label) => `
         <div class="nav-item ${state.activeTab === tab ? 'active' : ''}" data-tab="${tab}">
@@ -149,10 +158,10 @@ function renderSidebar() {
 
             <div class="nav-section">
                 <div class="nav-label">Hauptmenü</div>
-                ${nav('overview', ICONS.overview, 'Abteilungen')}
-                ${nav('members',  ICONS.members,  'Mitglieder')}
-                ${nav('finance',  ICONS.finance,  'Finanzen')}
-                ${nav('calendar', ICONS.calendar, 'Kalender')}
+                ${isModuleActive('overview')  ? nav('overview', ICONS.overview, 'Abteilungen') : ''}
+                ${isModuleActive('members')   ? nav('members',  ICONS.members,  'Mitglieder')  : ''}
+                ${isModuleActive('finance')   ? nav('finance',  ICONS.finance,  'Finanzen')    : ''}
+                ${isModuleActive('calendar')  ? nav('calendar', ICONS.calendar, 'Kalender')    : ''}
             </div>
 
             <div class="nav-section">
@@ -770,10 +779,24 @@ async function loadOverview() {
     }
 }
 
+function applyActiveModules(settings) {
+    if (settings && settings.activeModules && settings.activeModules.length > 0) {
+        state.activeModules = settings.activeModules;
+    } else {
+        state.activeModules = null;
+    }
+    // Falls der aktive Tab deaktiviert wurde, zum ersten aktiven wechseln.
+    const mainModules = ['overview', 'members', 'finance', 'calendar'];
+    if (mainModules.includes(state.activeTab) && !isModuleActive(state.activeTab)) {
+        state.activeTab = mainModules.find(m => isModuleActive(m)) || 'settings';
+    }
+}
+
 async function loadSettings() {
     try {
         state.settings = await GetSettings();
-        if (state.activeTab === 'settings') refreshContent();
+        applyActiveModules(state.settings);
+        render();
     } catch (e) {
         state.settings = { configError: String(e), publicKey: '', baseURL: '', tokenMasked: '', configURL: '' };
         if (state.activeTab === 'settings') refreshContent();
@@ -787,6 +810,7 @@ async function doReloadConfig() {
     refreshContent();
     try {
         state.settings = await ReloadConfig();
+        applyActiveModules(state.settings);
         const depts = await GetDepartments();
         state.departments = depts || [];
         if (state.departments.length > 0 && !state.departments.includes(state.selectedDept)) {
@@ -841,3 +865,4 @@ async function loadCalendarEvents() {
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
 render();
 loadDepartments();
+loadSettings();
