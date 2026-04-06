@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "fcs-viewer",
+  "outputfilename": "fcs-viewer",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Andreas Schröpfer",
+    "email": "20220983+as27@users.noreply.github.com"
+  }
+}
