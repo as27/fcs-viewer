@@ -1,5 +1,102 @@
 export namespace main {
 	
+	export class CalendarEvent {
+	    id: number;
+	    name: string;
+	    start: string;
+	    end: string;
+	    allDay: boolean;
+	    calendarId: number;
+	    calendarName: string;
+	    color: string;
+	    type: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CalendarEvent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.start = source["start"];
+	        this.end = source["end"];
+	        this.allDay = source["allDay"];
+	        this.calendarId = source["calendarId"];
+	        this.calendarName = source["calendarName"];
+	        this.color = source["color"];
+	        this.type = source["type"];
+	    }
+	}
+	export class CalendarInfo {
+	    id: number;
+	    name: string;
+	    color: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CalendarInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.color = source["color"];
+	    }
+	}
+	export class GroupDetail {
+	    id: number;
+	    short: string;
+	    name: string;
+	    description: string;
+	    notFound: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new GroupDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.short = source["short"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.notFound = source["notFound"];
+	    }
+	}
+	export class DepartmentDetail {
+	    name: string;
+	    groups: GroupDetail[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DepartmentDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.groups = this.convertValues(source["groups"], GroupDetail);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class MemberRow {
 	    id: number;
 	    membershipNumber: string;

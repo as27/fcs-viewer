@@ -52,7 +52,14 @@ fcs-viewer/
   - Sortierung nach jeder Spalte (asc/desc)
   - Spalten ein-/ausblendbar
 - **Einstellungen-Ansicht**: Public Key (kopierbar), Config-URL, BaseURL, Token (maskiert)
-- **Platzhalter**: Finanzen, Kalender
+- **Kalender-Modul**:
+  - Monatsansicht (7-Spalten-Grid) und Listenansicht (nach Tag gruppiert), umschaltbar per Toggle
+  - Events werden pro Kalender via `Events.ListAll` mit `StartGte`/`StartLte` geladen (um Kalender-Zugehörigkeit zu erhalten)
+  - Geburtstage der Mitglieder der gewählten Abteilung als Pseudo-Kalender (CalendarID = -1, Farbe Vereinsgelb)
+  - Kalender einzeln ein-/ausblendbar (Sidebar-Checkboxen)
+  - Monatsnavigation (Vor/Zurück/Heute) + Neu-laden-Button
+  - Go-Methoden: `GetCalendars() []CalendarInfo`, `GetCalendarEvents(department, year, month) []CalendarEvent`
+- **Platzhalter**: Finanzen
 
 ### Wails JS-Bindings regenerieren
 Nach Änderungen an den Go-Methoden in `app.go`:
@@ -62,5 +69,4 @@ wails generate module
 
 ### Bekannte Einschränkungen
 - Gruppen-Auflösung lädt alle MemberGroups per API (kein Cache)
-- Kein Kalender-Modul implementiert (nur Platzhalter)
 - Kein Finanzen-Modul implementiert (nur Platzhalter)

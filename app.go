@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/as27/ageloader"
 	"github.com/as27/easyvapi"
@@ -48,6 +51,21 @@ type MemberRow struct {
 	City             string `json:"city"`
 	JoinDate         string `json:"joinDate"`
 	Groups           string `json:"groups"`
+}
+
+// GroupDetail holds resolved details for a single member group.
+type GroupDetail struct {
+	ID          int    `json:"id"`
+	Short       string `json:"short"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	NotFound    bool   `json:"notFound"` // true if short name had no match in API
+}
+
+// DepartmentDetail combines config data with resolved group details.
+type DepartmentDetail struct {
+	Name   string        `json:"name"`
+	Groups []GroupDetail `json:"groups"`
 }
 
 // Settings holds the current app settings for the frontend.
@@ -102,6 +120,22 @@ func (a *App) startup(ctx context.Context) {
 	a.loader = loader
 
 	a.loadExternalConfig()
+}
+
+// ReloadConfig forces a fresh download of the external configuration and
+// reinitialises the API client. Returns the updated Settings.
+func (a *App) ReloadConfig() Settings {
+	if a.loader != nil {
+		// Invalidate cache so Open fetches fresh data
+		_ = a.loader.Invalidate(externalConfigURL)
+	}
+	// Clear member cache – config may have changed
+	a.mu.Lock()
+	a.memberCache = make(map[string][]MemberRow)
+	a.mu.Unlock()
+
+	a.loadExternalConfig()
+	return a.GetSettings()
 }
 
 func (a *App) loadExternalConfig() {
@@ -174,6 +208,66 @@ func (a *App) GetDepartments() []string {
 		names[i] = d.Name
 	}
 	return names
+}
+
+// GetDepartmentOverview returns all departments with their resolved group details.
+func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
+	a.mu.RLock()
+	conf := a.extConf
+	client := a.apiClient
+	a.mu.RUnlock()
+
+	if conf == nil {
+		return nil, fmt.Errorf("externe Konfiguration nicht geladen")
+	}
+	if client == nil {
+		return nil, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+	}
+
+	// Load all groups once
+	allGroups, err := client.MemberGroups.ListAll(a.ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Gruppen konnten nicht geladen werden: %w", err)
+	}
+
+	// Build lookup: short → group
+	byShort := make(map[string]struct {
+		ID          int
+		Name        string
+		Description string
+	}, len(allGroups))
+	for _, g := range allGroups {
+		byShort[g.Short] = struct {
+			ID          int
+			Name        string
+			Description string
+		}{g.ID, g.Name, g.Description}
+	}
+
+	result := make([]DepartmentDetail, 0, len(conf.Departments))
+	for _, dept := range conf.Departments {
+		groups := make([]GroupDetail, 0, len(dept.GroupIDs))
+		for _, short := range dept.GroupIDs {
+			if g, ok := byShort[short]; ok {
+				groups = append(groups, GroupDetail{
+					ID:          g.ID,
+					Short:       short,
+					Name:        g.Name,
+					Description: g.Description,
+				})
+			} else {
+				groups = append(groups, GroupDetail{
+					Short:    short,
+					NotFound: true,
+				})
+			}
+		}
+		result = append(result, DepartmentDetail{Name: dept.Name, Groups: groups})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+	return result, nil
 }
 
 // GetMembers returns the cached members for the given department.
@@ -273,6 +367,153 @@ func (a *App) resolveGroupIDs(shorts []string) ([]int, error) {
 	return ids, nil
 }
 
+// CalendarInfo is a slim calendar descriptor for the frontend.
+type CalendarInfo struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+// CalendarEvent is a unified event/birthday record for the calendar view.
+type CalendarEvent struct {
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	Start        string `json:"start"`
+	End          string `json:"end"`
+	AllDay       bool   `json:"allDay"`
+	CalendarID   int    `json:"calendarId"`
+	CalendarName string `json:"calendarName"`
+	Color        string `json:"color"`
+	Type         string `json:"type"` // "event" | "birthday"
+}
+
+// GetCalendars returns all calendars from the easyVerein API.
+func (a *App) GetCalendars() ([]CalendarInfo, error) {
+	a.mu.RLock()
+	client := a.apiClient
+	a.mu.RUnlock()
+	if client == nil {
+		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	}
+	cals, err := client.Calendars.ListAll(a.ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Kalender konnten nicht geladen werden: %w", err)
+	}
+	result := make([]CalendarInfo, len(cals))
+	for i, c := range cals {
+		color := c.Color
+		if color == "" {
+			color = "#6366f1"
+		}
+		result[i] = CalendarInfo{ID: c.ID, Name: c.Name, Color: color}
+	}
+	return result, nil
+}
+
+// GetCalendarEvents returns all events and (optionally) member birthdays for the
+// given year/month. department may be empty to skip birthday generation.
+func (a *App) GetCalendarEvents(department string, year int, month int) ([]CalendarEvent, error) {
+	a.mu.RLock()
+	client := a.apiClient
+	a.mu.RUnlock()
+	if client == nil {
+		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	}
+
+	// Date range for the requested month
+	startDate := fmt.Sprintf("%04d-%02d-01T00:00:00", year, month)
+	firstOfNext := time.Date(year, time.Month(month)+1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := firstOfNext.Format("2006-01-02") + "T00:00:00"
+
+	// Load all calendars so we can tag events with name/color
+	cals, err := client.Calendars.ListAll(a.ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Kalender konnten nicht geladen werden: %w", err)
+	}
+
+	calByID := make(map[int]CalendarInfo, len(cals))
+	for _, c := range cals {
+		color := c.Color
+		if color == "" {
+			color = "#6366f1"
+		}
+		calByID[c.ID] = CalendarInfo{ID: c.ID, Name: c.Name, Color: color}
+	}
+
+	var events []CalendarEvent
+
+	// Fetch events per calendar to associate each event with its calendar
+	for _, cal := range cals {
+		evts, err := client.Events.ListAll(a.ctx, &easyvapi.EventListOptions{
+			Calendar: cal.ID,
+			StartGte: startDate,
+			StartLte: endDate,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("Termine für Kalender '%s' konnten nicht geladen werden: %w", cal.Name, err)
+		}
+		color := cal.Color
+		if color == "" {
+			color = "#6366f1"
+		}
+		for _, e := range evts {
+			events = append(events, CalendarEvent{
+				ID:           e.ID,
+				Name:         e.Name,
+				Start:        e.Start,
+				End:          e.End,
+				AllDay:       e.AllDay,
+				CalendarID:   cal.ID,
+				CalendarName: cal.Name,
+				Color:        color,
+				Type:         "event",
+			})
+		}
+	}
+
+	// Add birthdays for the selected department
+	if department != "" {
+		members, err := a.GetMembers(department)
+		if err == nil {
+			monthStr := fmt.Sprintf("%02d", month)
+			for _, m := range members {
+				dob := m.DateOfBirth
+				if len(dob) < 10 {
+					continue
+				}
+				if dob[5:7] != monthStr {
+					continue
+				}
+				birthYear, _ := strconv.Atoi(dob[:4])
+				age := year - birthYear
+				name := fmt.Sprintf("%s %s (%d)", m.FirstName, m.FamilyName, age)
+				bdDate := fmt.Sprintf("%04d-%s-%s", year, dob[5:7], dob[8:10])
+				events = append(events, CalendarEvent{
+					ID:           -m.ID,
+					Name:         name,
+					Start:        bdDate,
+					End:          bdDate,
+					AllDay:       true,
+					CalendarID:   -1,
+					CalendarName: "Geburtstage",
+					Color:        "#F5C400",
+					Type:         "birthday",
+				})
+			}
+		}
+	}
+
+	return events, nil
+}
+
+// dateOnly returns the date portion (YYYY-MM-DD) of a datetime string.
+func dateOnly(s string) string {
+	if len(s) >= 10 {
+		return s[:10]
+	}
+	return s
+}
+
 func memberToRow(m model.Member) MemberRow {
 	var groups []string
 	for _, mg := range m.MemberGroups {
@@ -294,7 +535,7 @@ func memberToRow(m model.Member) MemberRow {
 		Street:           cd.Street,
 		Zip:              cd.Zip,
 		City:             cd.City,
-		JoinDate:         m.JoinDate,
+		JoinDate:         dateOnly(m.JoinDate),
 		Groups:           strings.Join(groups, ", "),
 	}
 }
