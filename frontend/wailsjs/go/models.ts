@@ -138,6 +138,7 @@ export namespace main {
 	    }
 	}
 	export class Settings {
+	    version: string;
 	    publicKey: string;
 	    baseURL: string;
 	    tokenMasked: string;
@@ -151,6 +152,7 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
 	        this.publicKey = source["publicKey"];
 	        this.baseURL = source["baseURL"];
 	        this.tokenMasked = source["tokenMasked"];

@@ -550,6 +550,16 @@ function renderSettings() {
             ${s.configError ? `<div class="error-box">${esc(s.configError)}</div>` : ''}
 
             <div class="card">
+                <div class="card-header"><span class="card-title">Version</span></div>
+                <div style="padding:16px">
+                    <div class="settings-field">
+                        <label>App-Version</label>
+                        <div class="settings-value"><span>${esc(s.version || '—')}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="card-header"><span class="card-title">Schlüssel & Konfiguration</span></div>
                 <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
                     <div class="settings-field">
