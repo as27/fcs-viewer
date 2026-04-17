@@ -18,7 +18,7 @@ type InvoiceService struct {
 // defaultInvoiceQuery requests all fields defined in model.Invoice.
 var defaultInvoiceQuery = NewQuery().
 	Fields("id", "invNumber", "date", "receiver", "totalPrice", "kind",
-		"isDraft", "isTemplate")
+		"isDraft", "isTemplate", "description", "paymentDifference")
 
 // InvoiceListOptions holds all filter and pagination options for Invoice list
 // requests.
@@ -34,6 +34,11 @@ type InvoiceListOptions struct {
 	DateGt string
 	// DateLt filters invoices with a date strictly before this value (YYYY-MM-DD).
 	DateLt string
+	// PaymentDifferenceNe filters invoices where paymentDifference != given value.
+	// Set to "0" to retrieve only invoices with an outstanding balance.
+	PaymentDifferenceNe string
+	// PaymentDifferenceGte filters invoices where paymentDifference >= given value.
+	PaymentDifferenceGte string
 }
 
 // invoiceListParams converts opts into URL query parameters.
@@ -58,6 +63,12 @@ func invoiceListParams(opts *InvoiceListOptions) url.Values {
 	}
 	if opts.DateLt != "" {
 		params.Set("date__lt", opts.DateLt)
+	}
+	if opts.PaymentDifferenceNe != "" {
+		params.Set("paymentDifference__ne", opts.PaymentDifferenceNe)
+	}
+	if opts.PaymentDifferenceGte != "" {
+		params.Set("paymentDifference__gte", opts.PaymentDifferenceGte)
 	}
 	return params
 }

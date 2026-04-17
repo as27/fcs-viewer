@@ -755,3 +755,40 @@
 .cal-list-badge--birthday {
     font-size: 12px;
 }
+
+/* Sub-tab bar (used in Finance module) */
+.sub-tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0;
+}
+
+.sub-tab {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 0;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.sub-tab:hover {
+    color: #1a1a1a;
+}
+
+.sub-tab.active {
+    color: #1a1a1a;
+    border-bottom-color: #F5C400;
+}
+
+/* ── Finance bookings ──────────────────────────────────────────────────────── */
+.amount-pos { color: #16a34a; font-weight: 500; }
+.amount-neg { color: #dc2626; font-weight: 500; }
+.error-msg { color: #dc2626; padding: 16px; font-size: 13px; }

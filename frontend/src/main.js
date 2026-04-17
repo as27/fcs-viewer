@@ -1,6 +1,6 @@
 import './style.css';
 import './app.css';
-import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents } from '../wailsjs/go/main/App';
+import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents, ExportPublicKey, ExportMembersExcel, GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview } from '../wailsjs/go/main/App';
 
 // ── Icons (inline SVG) ─────────────────────────────────────────────────────────
 const ICONS = {
@@ -67,10 +67,31 @@ const state = {
     calLoading: false,
     calError: '',
     calView: 'month',      // 'month' | 'list'
+    // Finance state
+    financeTab: 'overview',
+    financeOverview: null,
+    financeOverviewLoading: false,
+    financeOverviewError: '',
+    financeAccounts: [],       // BankAccountInfo[]
+    financeAccountsLoading: false,
+    financeAccountsError: '',
+    financeSelectedAccountID: 0,
+    financeBookings: [],       // BookingRow[]
+    financeBookingsLoading: false,
+    financeBookingsError: '',
+    financeBookingSearch: '',
+    financeBookingDateFrom: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })(),
+    financeBookingDateTo: new Date().toISOString().slice(0,10),
+    // Finance invoices state
+    financeInvoices: [],
+    financeInvoicesLoading: false,
+    financeInvoicesError: '',
+    financeInvoiceSearch: '',
     columns: [
         { key: 'membershipNumber', label: 'Nr.',           visible: true  },
         { key: 'familyName',       label: 'Nachname',      visible: true  },
         { key: 'firstName',        label: 'Vorname',       visible: true  },
+        { key: 'age',              label: 'Alter',         visible: true  },
         { key: 'dateOfBirth',      label: 'Geburtsdatum',  visible: true  },
         { key: 'email',            label: 'E-Mail',        visible: true  },
         { key: 'phone',            label: 'Telefon',       visible: false },
@@ -255,6 +276,12 @@ function renderMembers() {
                 <button class="btn-primary" id="reload-btn" ${state.loading ? 'disabled' : ''}>
                     ${state.loading ? '<span class="spinner"></span> Laden…' : 'Neu laden'}
                 </button>
+                <button class="btn-ghost" id="excel-export-btn" ${state.loading || !state.selectedDept ? 'disabled' : ''} title="Als Excel exportieren">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="margin-right:4px;vertical-align:-2px">
+                        <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M4 5l3 3-3 3M9 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>Excel
+                </button>
                 ${state.error ? `<span class="err-msg">${esc(state.error)}</span>` : `<span class="status-count">${rows.length} Einträge</span>`}
             </div>
             <div class="card">
@@ -318,36 +345,334 @@ function renderOverview() {
     }).join('');
 }
 
-// ── Finance placeholder ────────────────────────────────────────────────────────
+// ── Finance ────────────────────────────────────────────────────────────────────
+const FINANCE_TABS = ['overview', 'accounts', 'invoices'];
+const FINANCE_TAB_LABELS = { overview: 'Übersicht', accounts: 'Bankkonten', invoices: 'Offene Rechnungen' };
+
 function renderFinance() {
+    const tabs = FINANCE_TABS.map(t => `
+        <button class="sub-tab${state.financeTab === t ? ' active' : ''}"
+            onclick="setFinanceTab('${t}')">${FINANCE_TAB_LABELS[t]}</button>
+    `).join('');
+
+    let content = '';
+    if (state.financeTab === 'overview') content = renderFinanceOverview();
+    else if (state.financeTab === 'accounts') content = renderFinanceAccounts();
+    else if (state.financeTab === 'invoices') content = renderFinanceInvoices();
+
+    return `
+        <div class="sub-tab-bar">${tabs}</div>
+        ${content}
+    `;
+}
+
+function renderFinanceOverview() {
+    const ov = state.financeOverview;
+    const loading = state.financeOverviewLoading;
+
+    const fmt = (v) => v != null ? v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '—';
+
+    const now = new Date();
+    const monthLabel = now.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
+
+    const card = (label, value, sub, cls) => `
+        <div class="stat-card">
+            <div class="stat-label">${label}</div>
+            <div class="stat-value${cls ? ' ' + cls : ''}">${loading ? '<span class="spinner"></span>' : value}</div>
+            <div class="stat-sub">${sub}</div>
+        </div>`;
+
+    const income  = ov ? fmt(ov.incomeMonth)   : '—';
+    const expense = ov ? fmt(Math.abs(ov.expenseMonth)) : '—';
+    const balance = ov ? fmt(ov.balanceMonth)  : '—';
+    const open    = ov ? fmt(ov.openInvoices)  : '—';
+    const invCount = ov ? `${ov.invoiceCount} offene Rechnung${ov.invoiceCount !== 1 ? 'en' : ''}` : 'Noch nicht geladen';
+    const balClass = ov ? (ov.balanceMonth >= 0 ? 'amount-pos' : 'amount-neg') : '';
+
     return `
         <div class="stat-row">
-            <div class="stat-card">
-                <div class="stat-label">Einnahmen (Monat)</div>
-                <div class="stat-value">—</div>
-                <div class="stat-sub">Noch nicht verbunden</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Ausgaben (Monat)</div>
-                <div class="stat-value">—</div>
-                <div class="stat-sub">Noch nicht verbunden</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Saldo</div>
-                <div class="stat-value">—</div>
-                <div class="stat-sub">Noch nicht verbunden</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Offene Posten</div>
-                <div class="stat-value">—</div>
-                <div class="stat-sub">Noch nicht verbunden</div>
-            </div>
+            ${card('Einnahmen ' + monthLabel, income,  'Summe positive Buchungen', 'amount-pos')}
+            ${card('Ausgaben '  + monthLabel, expense, 'Summe negative Buchungen', 'amount-neg')}
+            ${card('Saldo '     + monthLabel, balance, 'Einnahmen – Ausgaben', balClass)}
+            ${card('Offene Posten', open, invCount, 'amount-neg')}
         </div>
+        ${state.financeOverviewError ? `<div class="error-msg">${state.financeOverviewError}</div>` : ''}
+    `;
+}
+
+function renderFinanceAccounts() {
+    if (state.financeAccountsLoading) {
+        return '<div class="placeholder"><span class="spinner"></span></div>';
+    }
+    if (state.financeAccountsError) {
+        return `<div class="error-msg">${state.financeAccountsError}</div>`;
+    }
+    if (!state.financeAccounts || state.financeAccounts.length === 0) {
+        return `<div class="card"><div class="card-header"><span class="card-title">Bankkonten</span></div>
+            <div class="placeholder" style="padding:40px">Keine Bankkonten für diese Abteilung konfiguriert.</div></div>`;
+    }
+
+    const accs = state.financeAccounts;
+    const selID = state.financeSelectedAccountID || accs[0].id;
+    const selAcc = accs.find(a => a.id === selID) || accs[0];
+
+    const options = accs.map(a =>
+        `<option value="${a.id}"${a.id === selID ? ' selected' : ''}>${a.name}</option>`
+    ).join('');
+
+    const balanceFormatted = selAcc.balance.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+    // Build bookings table
+    let bookingsSection = '';
+    if (state.financeBookingsLoading) {
+        bookingsSection = '<div class="placeholder"><span class="spinner"></span></div>';
+    } else if (state.financeBookingsError) {
+        bookingsSection = `<div class="error-msg">${state.financeBookingsError}</div>`;
+    } else {
+        const search = (state.financeBookingSearch || '').toLowerCase();
+        const filtered = (state.financeBookings || []).filter(b => {
+            if (!search) return true;
+            return (b.receiver || '').toLowerCase().includes(search) ||
+                   (b.description || '').toLowerCase().includes(search);
+        });
+
+        const rows = filtered.map(b => {
+            const amtClass = b.amount >= 0 ? 'amount-pos' : 'amount-neg';
+            const amtStr = b.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            return `<tr>
+                <td>${formatDate(b.date)}</td>
+                <td>${escHtml(b.receiver || '')}</td>
+                <td>${escHtml(b.description || '')}</td>
+                <td class="${amtClass}" style="text-align:right;font-variant-numeric:tabular-nums">${amtStr}</td>
+            </tr>`;
+        }).join('');
+
+        const empty = filtered.length === 0
+            ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#888">Keine Buchungen gefunden.</td></tr>'
+            : '';
+
+        bookingsSection = `
+            <table class="data-table">
+                <thead><tr>
+                    <th>Datum</th><th>Empfänger</th><th>Beschreibung</th><th style="text-align:right">Betrag</th>
+                </tr></thead>
+                <tbody>${rows}${empty}</tbody>
+            </table>`;
+    }
+
+    return `
         <div class="card">
-            <div class="card-header"><span class="card-title">Finanzen</span></div>
-            <div class="placeholder" style="padding:40px">Dieses Modul ist noch nicht implementiert.</div>
+            <div class="card-header">
+                <span class="card-title">Bankkonten</span>
+                <select class="dept-select" onchange="setFinanceAccount(parseInt(this.value))" style="margin-left:auto">
+                    ${options}
+                </select>
+            </div>
+            <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
+                <div><span style="color:#888;font-size:12px">Kontostand</span><br><strong style="font-size:16px">${balanceFormatted}</strong></div>
+                ${selAcc.iban ? `<div style="margin-left:16px"><span style="color:#888;font-size:12px">IBAN</span><br><span style="font-family:monospace;font-size:13px">${selAcc.iban}</span></div>` : ''}
+            </div>
+            <div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
+                <label style="font-size:12px;color:#666">Von</label>
+                <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateFrom}"
+                    onchange="setFinanceDateFrom(this.value)">
+                <label style="font-size:12px;color:#666">Bis</label>
+                <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateTo}"
+                    onchange="setFinanceDateTo(this.value)">
+                <button class="btn-primary" onclick="loadFinanceBookings()">Laden</button>
+                <div style="margin-left:auto;position:relative">
+                    <input id="finance-search-input" type="text" class="search-input"
+                        placeholder="Suche Empfänger / Beschreibung…"
+                        style="width:220px" value="${escHtml(state.financeBookingSearch || '')}">
+                </div>
+            </div>
+            ${bookingsSection}
         </div>
     `;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderFinanceInvoices() {
+    if (state.financeInvoicesLoading) {
+        return '<div class="placeholder"><span class="spinner"></span></div>';
+    }
+    if (state.financeInvoicesError) {
+        return `<div class="error-msg">${state.financeInvoicesError}</div>`;
+    }
+
+    const search = (state.financeInvoiceSearch || '').toLowerCase();
+    const filtered = (state.financeInvoices || []).filter(inv => {
+        if (!search) return true;
+        return (inv.receiver || '').toLowerCase().includes(search) ||
+               (inv.invNumber || '').toLowerCase().includes(search) ||
+               (inv.description || '').toLowerCase().includes(search);
+    });
+
+    // Summary totals
+    const totalOpen = filtered.reduce((s, inv) => s + inv.paymentDifference, 0);
+    const totalOpenFmt = totalOpen.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+    const rows = filtered.map(inv => {
+        const diffFmt = inv.paymentDifference.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+        const totalFmt = inv.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+        return `<tr>
+            <td>${escHtml(inv.invNumber || '')}</td>
+            <td>${formatDate(inv.date)}</td>
+            <td>${escHtml(inv.receiver || '')}</td>
+            <td>${escHtml(inv.description || '')}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums">${totalFmt}</td>
+            <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums">${diffFmt}</td>
+        </tr>`;
+    }).join('');
+
+    const empty = filtered.length === 0
+        ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">${state.financeInvoices.length === 0 ? 'Keine offenen Rechnungen.' : 'Keine Treffer.'}</td></tr>`
+        : '';
+
+    return `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Offene Rechnungen</span>
+                <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
+            </div>
+            <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
+                <div><span style="color:#888;font-size:12px">Offener Gesamtbetrag</span><br>
+                    <strong class="amount-neg" style="font-size:16px">${totalOpenFmt}</strong>
+                    <span style="color:#888;font-size:12px;margin-left:6px">(${filtered.length} Rechnung${filtered.length !== 1 ? 'en' : ''})</span>
+                </div>
+                <div style="margin-left:auto">
+                    <input id="invoice-search-input" type="text" class="search-input"
+                        placeholder="Suche Name / Nr. / Beschreibung…"
+                        style="width:240px" value="${escHtml(state.financeInvoiceSearch || '')}">
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr>
+                    <th>Nr.</th><th>Datum</th><th>Empfänger</th><th>Beschreibung</th>
+                    <th style="text-align:right">Gesamt</th><th style="text-align:right">Offen</th>
+                </tr></thead>
+                <tbody>${rows}${empty}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+window.setFinanceTab = function(tab) {
+    state.financeTab = tab;
+    if (tab === 'overview' && !state.financeOverview && !state.financeOverviewLoading) {
+        loadFinanceOverview();
+    } else if (tab === 'accounts' && state.financeAccounts.length === 0 && !state.financeAccountsLoading) {
+        loadFinanceAccounts();
+    } else if (tab === 'invoices' && state.financeInvoices.length === 0 && !state.financeInvoicesLoading) {
+        loadInvoices();
+    } else {
+        render();
+    }
+};
+
+function loadFinanceOverview() {
+    if (!state.selectedDept) { render(); return; }
+    state.financeOverviewLoading = true;
+    state.financeOverviewError = '';
+    render();
+    GetFinanceOverview(state.selectedDept)
+        .then(ov => {
+            state.financeOverview = ov;
+            state.financeOverviewLoading = false;
+            // Also populate invoice cache in the invoices tab if already loaded
+            render();
+        })
+        .catch(err => {
+            state.financeOverviewError = String(err);
+            state.financeOverviewLoading = false;
+            render();
+        });
+}
+
+window.setFinanceAccount = function(id) {
+    state.financeSelectedAccountID = id;
+    state.financeBookings = [];
+    render();
+    loadFinanceBookings();
+};
+
+window.setFinanceDateFrom = function(v) { state.financeBookingDateFrom = v; render(); };
+window.setFinanceDateTo = function(v) { state.financeBookingDateTo = v; render(); };
+
+function formatDate(iso) {
+    if (!iso || iso.length < 10) return iso || '';
+    const [y, m, d] = iso.slice(0, 10).split('-');
+    return `${d}.${m}.${y}`;
+}
+
+window.loadFinanceBookings = function() {
+    const accs = state.financeAccounts;
+    if (!accs || accs.length === 0) return;
+    const id = state.financeSelectedAccountID || accs[0].id;
+    state.financeBookingsLoading = true;
+    state.financeBookingsError = '';
+    render();
+    GetBookings(id, state.financeBookingDateFrom, state.financeBookingDateTo)
+        .then(rows => {
+            state.financeBookings = rows || [];
+            state.financeBookingsLoading = false;
+            render();
+        })
+        .catch(err => {
+            state.financeBookingsError = String(err);
+            state.financeBookingsLoading = false;
+            render();
+        });
+};
+
+window.loadInvoices = function() { loadInvoices(true); };
+
+function loadInvoices(forceReload) {
+    if (!state.selectedDept) { render(); return; }
+    state.financeInvoicesLoading = true;
+    state.financeInvoicesError = '';
+    render();
+    const fn = forceReload ? ReloadOpenInvoices : GetOpenInvoices;
+    fn(state.selectedDept)
+        .then(rows => {
+            state.financeInvoices = rows || [];
+            state.financeInvoicesLoading = false;
+            // Keep overview open-invoice count in sync after reload
+            if (forceReload) state.financeOverview = null;
+            render();
+            if (forceReload) loadFinanceOverview();
+        })
+        .catch(err => {
+            state.financeInvoicesError = String(err);
+            state.financeInvoicesLoading = false;
+            render();
+        });
+}
+
+function loadFinanceAccounts() {
+    if (!state.selectedDept) { render(); return; }
+    state.financeAccountsLoading = true;
+    state.financeAccountsError = '';
+    render();
+    GetBankAccounts(state.selectedDept)
+        .then(accs => {
+            state.financeAccounts = accs || [];
+            state.financeAccountsLoading = false;
+            if (accs && accs.length > 0) {
+                state.financeSelectedAccountID = accs[0].id;
+                loadFinanceBookings();
+            } else {
+                render();
+            }
+        })
+        .catch(err => {
+            state.financeAccountsError = String(err);
+            state.financeAccountsLoading = false;
+            render();
+        });
 }
 
 // ── Calendar ───────────────────────────────────────────────────────────────────
@@ -567,6 +892,7 @@ function renderSettings() {
                         <div class="settings-value">
                             <span>${esc(s.publicKey || '—')}</span>
                             ${s.publicKey ? `<button class="copy-btn" data-copy="${esc(s.publicKey)}">Kopieren</button>` : ''}
+                            ${s.publicKey ? `<button class="btn-ghost" id="export-pubkey-btn" style="font-size:11px;padding:3px 8px">Als Datei speichern</button>` : ''}
                         </div>
                     </div>
                     <div class="settings-field">
@@ -601,6 +927,7 @@ function attachListeners() {
             if (state.activeTab === 'settings' && !state.settings) loadSettings();
             if (state.activeTab === 'overview' && !state.overview && !state.overviewLoading) loadOverview();
             if (state.activeTab === 'calendar' && !state.calLoading) loadCalendarData();
+            if (state.activeTab === 'finance' && !state.financeOverview && !state.financeOverviewLoading) loadFinanceOverview();
             render();
         });
     });
@@ -612,6 +939,11 @@ function attachListeners() {
             state.selectedDept = deptSel.value;
             state.members = [];
             state.error = '';
+            state.financeAccounts = [];
+            state.financeBookings = [];
+            state.financeSelectedAccountID = 0;
+            state.financeInvoices = [];
+            state.financeOverview = null;
             render();
             loadMembers(false);
             // Reload calendar events so birthdays update for new department
@@ -619,7 +951,7 @@ function attachListeners() {
         });
     }
 
-    // Search
+    // Member search
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', e => {
@@ -631,9 +963,39 @@ function attachListeners() {
         searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
 
+    // Finance booking search
+    const finSearchInput = document.getElementById('finance-search-input');
+    if (finSearchInput) {
+        finSearchInput.addEventListener('input', e => {
+            state.financeBookingSearch = e.target.value;
+            refreshContent();
+        });
+        finSearchInput.focus();
+        finSearchInput.setSelectionRange(finSearchInput.value.length, finSearchInput.value.length);
+    }
+
+    // Invoice search
+    const invSearchInput = document.getElementById('invoice-search-input');
+    if (invSearchInput) {
+        invSearchInput.addEventListener('input', e => {
+            state.financeInvoiceSearch = e.target.value;
+            refreshContent();
+        });
+        invSearchInput.focus();
+        invSearchInput.setSelectionRange(invSearchInput.value.length, invSearchInput.value.length);
+    }
+
     // Reload members
     const reloadBtn = document.getElementById('reload-btn');
     if (reloadBtn) reloadBtn.addEventListener('click', () => loadMembers(true));
+
+    // Excel export
+    const excelBtn = document.getElementById('excel-export-btn');
+    if (excelBtn) excelBtn.addEventListener('click', doExportExcel);
+
+    // Export public key as file
+    const exportPubKeyBtn = document.getElementById('export-pubkey-btn');
+    if (exportPubKeyBtn) exportPubKeyBtn.addEventListener('click', doExportPublicKey);
 
     // Column toggle
     const colBtn = document.getElementById('col-toggle-btn');
@@ -740,6 +1102,40 @@ function refreshContent() {
     if (el) el.innerHTML = renderContent();
     // Re-attach only content-level listeners
     attachListeners();
+}
+
+// ── Export handlers ────────────────────────────────────────────────────────────
+async function doExportExcel() {
+    if (!state.selectedDept) return;
+    try {
+        const path = await ExportMembersExcel(state.selectedDept);
+        if (path) {
+            const btn = document.getElementById('excel-export-btn');
+            if (btn) {
+                const prev = btn.innerHTML;
+                btn.textContent = 'Gespeichert!';
+                setTimeout(() => { btn.innerHTML = prev; }, 2000);
+            }
+        }
+    } catch (e) {
+        alert('Excel-Export fehlgeschlagen: ' + String(e));
+    }
+}
+
+async function doExportPublicKey() {
+    try {
+        const path = await ExportPublicKey();
+        if (path) {
+            const btn = document.getElementById('export-pubkey-btn');
+            if (btn) {
+                const prev = btn.textContent;
+                btn.textContent = 'Gespeichert!';
+                setTimeout(() => { btn.textContent = prev; }, 2000);
+            }
+        }
+    } catch (e) {
+        alert('Fehler beim Speichern des Public Keys: ' + String(e));
+    }
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────────

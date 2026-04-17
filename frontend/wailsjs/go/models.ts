@@ -1,5 +1,43 @@
 export namespace main {
 	
+	export class BankAccountInfo {
+	    id: number;
+	    name: string;
+	    iban: string;
+	    balance: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new BankAccountInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.iban = source["iban"];
+	        this.balance = source["balance"];
+	    }
+	}
+	export class BookingRow {
+	    id: number;
+	    date: string;
+	    amount: number;
+	    receiver: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BookingRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.date = source["date"];
+	        this.amount = source["amount"];
+	        this.receiver = source["receiver"];
+	        this.description = source["description"];
+	    }
+	}
 	export class CalendarEvent {
 	    id: number;
 	    name: string;
@@ -96,12 +134,57 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class FinanceOverview {
+	    incomeMonth: number;
+	    expenseMonth: number;
+	    balanceMonth: number;
+	    openInvoices: number;
+	    invoiceCount: number;
 	
+	    static createFrom(source: any = {}) {
+	        return new FinanceOverview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.incomeMonth = source["incomeMonth"];
+	        this.expenseMonth = source["expenseMonth"];
+	        this.balanceMonth = source["balanceMonth"];
+	        this.openInvoices = source["openInvoices"];
+	        this.invoiceCount = source["invoiceCount"];
+	    }
+	}
+	
+	export class InvoiceRow {
+	    id: number;
+	    invNumber: string;
+	    date: string;
+	    receiver: string;
+	    totalPrice: number;
+	    paymentDifference: number;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InvoiceRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.invNumber = source["invNumber"];
+	        this.date = source["date"];
+	        this.receiver = source["receiver"];
+	        this.totalPrice = source["totalPrice"];
+	        this.paymentDifference = source["paymentDifference"];
+	        this.description = source["description"];
+	    }
+	}
 	export class MemberRow {
 	    id: number;
 	    membershipNumber: string;
 	    firstName: string;
 	    familyName: string;
+	    age: number;
 	    email: string;
 	    phone: string;
 	    mobile: string;
@@ -124,6 +207,7 @@ export namespace main {
 	        this.membershipNumber = source["membershipNumber"];
 	        this.firstName = source["firstName"];
 	        this.familyName = source["familyName"];
+	        this.age = source["age"];
 	        this.email = source["email"];
 	        this.phone = source["phone"];
 	        this.mobile = source["mobile"];

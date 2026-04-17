@@ -59,7 +59,14 @@ fcs-viewer/
   - Kalender einzeln ein-/ausblendbar (Sidebar-Checkboxen)
   - Monatsnavigation (Vor/Zurück/Heute) + Neu-laden-Button
   - Go-Methoden: `GetCalendars() []CalendarInfo`, `GetCalendarEvents(department, year, month) []CalendarEvent`
-- **Platzhalter**: Finanzen
+- **Finanz-Modul** (ab v0.91.0):
+  - Sub-Tabs: Übersicht, Bankkonten, Offene Rechnungen
+  - YAML-Feld `bank_account_ids` pro Department → `Department.BankAccountIDs []int`
+  - **Bankkonten**: `GetBankAccounts(dept)` filtert API-Konten nach Config-IDs; `GetBookings(id, from, to)` lädt Buchungen mit Datumsfilter
+  - **Offene Rechnungen**: `GetOpenInvoices(dept)` / `ReloadOpenInvoices(dept)` — Invoice-Cache pro Abteilung; Namensabgleich Empfänger ↔ Mitglied (Substring, case-insensitive)
+  - **Übersicht**: `GetFinanceOverview(dept)` — Einnahmen/Ausgaben laufender Monat + offene Posten aus Cache
+  - `vendor/easyvapi/model/invoice.go` um `PaymentDifference flexFloat64` erweitert
+  - `vendor/easyvapi/invoice.go`: Defaultquery + `PaymentDifferenceNe`/`PaymentDifferenceGte` in `InvoiceListOptions`
 
 ### Wails JS-Bindings regenerieren
 Nach Änderungen an den Go-Methoden in `app.go`:
@@ -69,4 +76,4 @@ wails generate module
 
 ### Bekannte Einschränkungen
 - Gruppen-Auflösung lädt alle MemberGroups per API (kein Cache)
-- Kein Finanzen-Modul implementiert (nur Platzhalter)
+- Rechnungsabgleich per Namens-Substring: funktioniert nur wenn Empfänger-Feld Vor- und Nachname enthält

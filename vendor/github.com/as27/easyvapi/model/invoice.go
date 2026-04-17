@@ -20,6 +20,8 @@ type Invoice struct {
 	IsTemplate bool `json:"isTemplate"`
 	// Description is an optional free-text description.
 	Description string `json:"description"`
+	// PaymentDifference is the outstanding (unpaid) amount. Zero means fully paid.
+	PaymentDifference flexFloat64 `json:"paymentDifference"`
 }
 
 // InvoiceCreate holds the fields used when creating a new invoice via
