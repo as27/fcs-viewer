@@ -155,6 +155,32 @@ export namespace main {
 	    }
 	}
 	
+	export class InvoiceItemRow {
+	    id: number;
+	    title: string;
+	    description: string;
+	    quantity: number;
+	    unitPrice: number;
+	    taxRate: number;
+	    taxName: string;
+	    gross: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new InvoiceItemRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.title = source["title"];
+	        this.description = source["description"];
+	        this.quantity = source["quantity"];
+	        this.unitPrice = source["unitPrice"];
+	        this.taxRate = source["taxRate"];
+	        this.taxName = source["taxName"];
+	        this.gross = source["gross"];
+	    }
+	}
 	export class InvoiceRow {
 	    id: number;
 	    invNumber: string;
@@ -163,6 +189,9 @@ export namespace main {
 	    totalPrice: number;
 	    paymentDifference: number;
 	    description: string;
+	    charge: number;
+	    chargeback: number;
+	    refNumber: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new InvoiceRow(source);
@@ -177,6 +206,9 @@ export namespace main {
 	        this.totalPrice = source["totalPrice"];
 	        this.paymentDifference = source["paymentDifference"];
 	        this.description = source["description"];
+	        this.charge = source["charge"];
+	        this.chargeback = source["chargeback"];
+	        this.refNumber = source["refNumber"];
 	    }
 	}
 	export class MemberRow {

@@ -21,7 +21,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "0.91.0"
+const AppVersion = "0.91.12"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -78,6 +78,9 @@ type InvoiceRow struct {
 	TotalPrice        float64 `json:"totalPrice"`
 	PaymentDifference float64 `json:"paymentDifference"`
 	Description       string  `json:"description"`
+	Charge            float64 `json:"charge"`
+	Chargeback        float64 `json:"chargeback"`
+	RefNumber         string  `json:"refNumber"`
 }
 
 // FinanceOverview holds aggregated finance statistics for the overview card.
@@ -676,17 +679,20 @@ func (a *App) loadOpenInvoices(department string) ([]InvoiceRow, error) {
 		if float64(inv.PaymentDifference) == 0 {
 			continue
 		}
-		if !memberMatch(inv.Receiver) {
+		if !memberMatch(derefStr(inv.Receiver)) {
 			continue
 		}
 		rows = append(rows, InvoiceRow{
 			ID:                inv.ID,
 			InvNumber:         inv.InvNumber,
-			Date:              dateOnly(inv.Date),
-			Receiver:          inv.Receiver,
+			Date:              dateOnly(derefStr(inv.Date)),
+			Receiver:          derefStr(inv.Receiver),
 			TotalPrice:        float64(inv.TotalPrice),
 			PaymentDifference: float64(inv.PaymentDifference),
-			Description:       inv.Description,
+			Description:       derefStr(inv.Description),
+			Charge:            float64(inv.Charges.Charge),
+			Chargeback:        float64(inv.Charges.ChargeBack),
+			RefNumber:         inv.RefNumber,
 		})
 	}
 
@@ -695,6 +701,93 @@ func (a *App) loadOpenInvoices(department string) ([]InvoiceRow, error) {
 	a.mu.Unlock()
 
 	return rows, nil
+}
+
+// InvoiceItemRow is a flat invoice line-item record for the frontend.
+type InvoiceItemRow struct {
+	ID          int     `json:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Quantity    float64 `json:"quantity"`
+	UnitPrice   float64 `json:"unitPrice"`
+	TaxRate     float64 `json:"taxRate"`
+	TaxName     string  `json:"taxName"`
+	Gross       bool    `json:"gross"`
+}
+
+// GetInvoiceItems returns all line items for the given invoice ID.
+func (a *App) GetInvoiceItems(invoiceID int) ([]InvoiceItemRow, error) {
+	a.mu.RLock()
+	client := a.apiClient
+	a.mu.RUnlock()
+	if client == nil {
+		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	}
+
+	items, err := client.InvoiceItems.ListAll(a.ctx, &easyvapi.InvoiceItemListOptions{
+		RelatedInvoice: invoiceID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Rechnungspositionen konnten nicht geladen werden: %w", err)
+	}
+
+	rows := make([]InvoiceItemRow, 0, len(items))
+	for _, it := range items {
+		rows = append(rows, InvoiceItemRow{
+			ID:          it.ID,
+			Title:       it.Title,
+			Description: it.Description,
+			Quantity:    float64(it.Quantity),
+			UnitPrice:   float64(it.UnitPrice),
+			TaxRate:     float64(it.TaxRate),
+			TaxName:     it.TaxName,
+			Gross:       it.Gross,
+		})
+	}
+	return rows, nil
+}
+
+// CreateCashPayment books a cash payment for an open invoice.
+// bankAccountID is the physical bank/cash account.
+// invoiceID is used to fetch the refNumber from the API for the booking description.
+func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, date, invNumber, receiver string) error {
+	a.mu.RLock()
+	client := a.apiClient
+	conf := a.extConf
+	a.mu.RUnlock()
+	if client == nil {
+		return fmt.Errorf("API-Client nicht initialisiert")
+	}
+
+	// Fetch refNumber from the invoice directly (not available in the list query).
+	refNumber := ""
+	if inv, err := client.Invoices.Get(a.ctx, invoiceID, nil); err == nil && inv != nil {
+		refNumber = inv.RefNumber
+	}
+
+	desc := fmt.Sprintf("Barzahlung %s", invNumber)
+	if refNumber != "" {
+		desc = fmt.Sprintf("%s / Ref: %s", desc, refNumber)
+	}
+
+	var relatedInvoice []string
+	if invoiceID != 0 && conf != nil {
+		baseURL := strings.TrimRight(conf.Vars.BaseURL, "/")
+		relatedInvoice = []string{fmt.Sprintf("%s/invoice/%d", baseURL, invoiceID)}
+	}
+
+	_, err := client.Bookings.Create(a.ctx, model.BookingCreate{
+		Amount:         amount,
+		BankAccount:    bankAccountID,
+		Date:           date,
+		Description:    desc,
+		Receiver:       receiver,
+		RelatedInvoice: relatedInvoice,
+	})
+	if err != nil {
+		return fmt.Errorf("Buchung konnte nicht erstellt werden: %w", err)
+	}
+	return nil
 }
 
 // GetFinanceOverview returns aggregated statistics for the finance overview card.
@@ -827,7 +920,11 @@ func (a *App) GetBookings(bankAccountID int, dateFrom, dateTo string) ([]Booking
 		opts.DateGt = dateFrom
 	}
 	if dateTo != "" {
-		opts.DateLt = dateTo
+		if t, err := time.Parse("2006-01-02", dateTo); err == nil {
+			opts.DateLt = t.AddDate(0, 0, 1).Format("2006-01-02")
+		} else {
+			opts.DateLt = dateTo
+		}
 	}
 
 	bookings, err := client.Bookings.ListAll(a.ctx, opts)
@@ -1045,6 +1142,13 @@ func colLetter(n int) string {
 
 func stringPtr(s string) *string { return &s }
 
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 // dateOnly returns the date portion (YYYY-MM-DD) of a datetime string.
 func dateOnly(s string) string {
 	if len(s) >= 10 {
@@ -1075,26 +1179,18 @@ func calcAge(dob string) int {
 func memberToRow(m model.Member) MemberRow {
 	var groups, shorts []string
 	for _, mg := range m.MemberGroups {
-		name := mg.Name
-		short := mg.Short
-		// When returned via through-table, actual group data is in the nested Group field.
-		if mg.Group != nil {
-			if mg.Group.Name != "" {
-				name = mg.Group.Name
-			}
-			if mg.Group.Short != "" {
-				short = mg.Group.Short
-			}
+		if mg.Name != "" {
+			groups = append(groups, mg.Name)
 		}
-		if name != "" {
-			groups = append(groups, name)
-		}
-		if short != "" {
-			shorts = append(shorts, short)
+		if mg.Short != "" {
+			shorts = append(shorts, mg.Short)
 		}
 	}
 
-	cd := m.ContactDetails
+	var cd model.ContactDetails
+	if m.ContactDetails != nil {
+		cd = *m.ContactDetails
+	}
 	return MemberRow{
 		ID:               m.ID,
 		MembershipNumber: m.MembershipNumber,

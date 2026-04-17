@@ -1,6 +1,6 @@
 import './style.css';
 import './app.css';
-import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents, ExportPublicKey, ExportMembersExcel, GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview } from '../wailsjs/go/main/App';
+import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents, ExportPublicKey, ExportMembersExcel, GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
 
 // ── Icons (inline SVG) ─────────────────────────────────────────────────────────
 const ICONS = {
@@ -87,6 +87,12 @@ const state = {
     financeInvoicesLoading: false,
     financeInvoicesError: '',
     financeInvoiceSearch: '',
+    expandedInvoiceID: null,
+    invoiceItems: {},        // invoiceID -> []InvoiceItemRow
+    invoiceItemsLoading: {}, // invoiceID -> bool
+    cashPaymentModal: null,  // { inv, bankAccountID, amount, date, confirmed } | null
+    cashPaymentLoading: false,
+    cashPaymentError: '',
     columns: [
         { key: 'membershipNumber', label: 'Nr.',           visible: true  },
         { key: 'familyName',       label: 'Nachname',      visible: true  },
@@ -146,8 +152,10 @@ function render() {
                 </div>
             </div>
         </div>
+        ${state.cashPaymentModal ? renderCashPaymentModal() : ''}
     `;
     attachListeners();
+    attachCashPaymentListeners();
 }
 
 function isModuleActive(key) {
@@ -515,17 +523,65 @@ function renderFinanceInvoices() {
     const totalOpen = filtered.reduce((s, inv) => s + inv.paymentDifference, 0);
     const totalOpenFmt = totalOpen.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
-    const rows = filtered.map(inv => {
+    const rows = filtered.flatMap(inv => {
         const diffFmt = inv.paymentDifference.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
         const totalFmt = inv.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-        return `<tr>
-            <td>${escHtml(inv.invNumber || '')}</td>
+        const isExpanded = state.expandedInvoiceID === inv.id;
+        const isLoading = state.invoiceItemsLoading[inv.id];
+        const expandIcon = isExpanded ? '▾' : '▸';
+
+        const cashIcon = `<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${inv.id})">💵</button>`;
+        const mainRow = `<tr class="invoice-row${isExpanded ? ' invoice-row-expanded' : ''}" onclick="toggleInvoiceItems(${inv.id})" style="cursor:pointer">
+            <td><span style="margin-right:6px;color:#888">${expandIcon}</span>${escHtml(inv.invNumber || '')}</td>
             <td>${formatDate(inv.date)}</td>
             <td>${escHtml(inv.receiver || '')}</td>
             <td>${escHtml(inv.description || '')}</td>
             <td style="text-align:right;font-variant-numeric:tabular-nums">${totalFmt}</td>
-            <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums">${diffFmt}</td>
+            <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${diffFmt}${cashIcon}</td>
         </tr>`;
+
+        if (!isExpanded) return [mainRow];
+
+        let innerHtml;
+        if (isLoading) {
+            innerHtml = `<div class="invoice-detail-loading"><span class="spinner"></span> Lade Positionen…</div>`;
+        } else {
+            const items = state.invoiceItems[inv.id] || [];
+            const fmt = v => v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+            const itemRows = items.map(it => {
+                const lineTotal = it.quantity * it.unitPrice;
+                const taxLabel = it.taxRate > 0 ? `<span class="invoice-item-tax">${it.taxRate}% ${escHtml(it.taxName || 'MwSt.')}</span>` : '';
+                return `<div class="invoice-item-row">
+                    <div class="invoice-item-title">
+                        ${escHtml(it.title || '')}
+                        ${it.description ? `<div class="invoice-item-desc">${escHtml(it.description)}</div>` : ''}
+                    </div>
+                    <div class="invoice-item-qty">${it.quantity}&thinsp;×&thinsp;${fmt(it.unitPrice)}${taxLabel}</div>
+                    <div class="invoice-item-total">${fmt(lineTotal)}</div>
+                </div>`;
+            }).join('');
+
+            const chargeRow = inv.charge > 0 ? `<div class="invoice-item-row invoice-item-charge">
+                <div class="invoice-item-title">Mahngebühr</div>
+                <div class="invoice-item-qty"></div>
+                <div class="invoice-item-total">${fmt(inv.charge)}</div>
+            </div>` : '';
+
+            const chargebackRow = inv.chargeback > 0 ? `<div class="invoice-item-row invoice-item-charge">
+                <div class="invoice-item-title">Bankgebühr (Rücklastschrift)</div>
+                <div class="invoice-item-qty"></div>
+                <div class="invoice-item-total">${fmt(inv.chargeback)}</div>
+            </div>` : '';
+
+            const hasContent = items.length > 0 || inv.charge > 0 || inv.chargeback > 0;
+            innerHtml = hasContent
+                ? `<div class="invoice-items-panel">${itemRows}${chargeRow}${chargebackRow}</div>`
+                : `<div class="invoice-detail-loading" style="color:#888">Keine Positionen gefunden.</div>`;
+        }
+
+        const detailRow = `<tr class="invoice-detail-row"><td colspan="6" class="invoice-detail-cell">${innerHtml}</td></tr>`;
+        return [mainRow, detailRow];
     }).join('');
 
     const empty = filtered.length === 0
@@ -652,6 +708,32 @@ function loadInvoices(forceReload) {
         });
 }
 
+window.toggleInvoiceItems = function(invoiceID) {
+    if (state.expandedInvoiceID === invoiceID) {
+        state.expandedInvoiceID = null;
+        render();
+        return;
+    }
+    state.expandedInvoiceID = invoiceID;
+    if (!state.invoiceItems[invoiceID]) {
+        state.invoiceItemsLoading[invoiceID] = true;
+        render();
+        GetInvoiceItems(invoiceID)
+            .then(items => {
+                state.invoiceItems[invoiceID] = items || [];
+                state.invoiceItemsLoading[invoiceID] = false;
+                render();
+            })
+            .catch(err => {
+                state.invoiceItems[invoiceID] = [];
+                state.invoiceItemsLoading[invoiceID] = false;
+                render();
+            });
+    } else {
+        render();
+    }
+};
+
 function loadFinanceAccounts() {
     if (!state.selectedDept) { render(); return; }
     state.financeAccountsLoading = true;
@@ -661,12 +743,15 @@ function loadFinanceAccounts() {
         .then(accs => {
             state.financeAccounts = accs || [];
             state.financeAccountsLoading = false;
-            if (accs && accs.length > 0) {
-                state.financeSelectedAccountID = accs[0].id;
-                loadFinanceBookings();
-            } else {
-                render();
+            if (state.financeAccounts.length > 0) {
+                state.financeSelectedAccountID = state.financeAccounts[0].id;
+                if (state.cashPaymentModal && !state.cashPaymentModal.bankAccountID) {
+                    state.cashPaymentModal.bankAccountID = state.financeAccounts[0].id;
+                } else {
+                    loadFinanceBookings();
+                }
             }
+            render();
         })
         .catch(err => {
             state.financeAccountsError = String(err);
@@ -918,6 +1003,175 @@ function renderSettings() {
     `;
 }
 
+// ── Cash payment modal ─────────────────────────────────────────────────────────
+
+function renderCashPaymentModal() {
+    const m = state.cashPaymentModal;
+    const bankAccounts = state.financeAccounts || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const selectedBankID = m.bankAccountID || (bankAccounts.length > 0 ? bankAccounts[0].id : 0);
+    const selectedBank = bankAccounts.find(a => a.id === selectedBankID);
+    const amount = m.amount != null ? m.amount : m.inv.paymentDifference;
+    const date = m.date || today;
+    const fmt = v => v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+    const receiver = (m.inv.receiver || '').split('\n')[0].trim();
+    const description = `Barzahlung ${m.inv.invNumber || ''}${m.inv.refNumber ? ' / Ref: ' + m.inv.refNumber : ''}`;
+
+    if (m.confirmed) {
+        return `
+        <div class="modal-backdrop" onclick="closeCashPaymentModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <span class="modal-title">Buchung bestätigen</span>
+                    <button class="modal-close" onclick="closeCashPaymentModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-confirm-intro">Bitte die Buchungsparameter prüfen und anschließend buchen.</div>
+                    <div class="modal-confirm-table">
+                        <div class="modal-confirm-row"><span class="modal-label">Bankkonto</span><strong>${escHtml(selectedBank ? selectedBank.name : String(selectedBankID))}</strong></div>
+                        <div class="modal-confirm-row"><span class="modal-label">Betrag</span><strong class="amount-pos">${fmt(amount)}</strong></div>
+                        <div class="modal-confirm-row"><span class="modal-label">Datum</span><strong>${formatDate(date)}</strong></div>
+                        <div class="modal-confirm-row"><span class="modal-label">Empfänger</span><span>${escHtml(receiver)}</span></div>
+                        <div class="modal-confirm-row"><span class="modal-label">Beschreibung</span><span>${escHtml(description)}</span></div>
+                    </div>
+                    ${state.cashPaymentError ? `<div class="modal-error">${escHtml(state.cashPaymentError)}</div>` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-ghost" onclick="cashPaymentBack()">Zurück</button>
+                    <button class="btn-primary" id="cash-pay-submit" ${state.cashPaymentLoading ? 'disabled' : ''}>
+                        ${state.cashPaymentLoading ? '<span class="spinner"></span> Wird gebucht…' : 'Buchen'}
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    const bankOptions = bankAccounts.map(a =>
+        `<option value="${a.id}" ${a.id === selectedBankID ? 'selected' : ''}>${escHtml(a.name)}${a.iban ? ' · ' + escHtml(a.iban) : ''}</option>`
+    ).join('');
+
+    return `
+    <div class="modal-backdrop" onclick="closeCashPaymentModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">Barzahlung erfassen</span>
+                <button class="modal-close" onclick="closeCashPaymentModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-invoice-info">
+                    <div><span class="modal-label">Rechnung</span> <strong>${escHtml(m.inv.invNumber || '')}</strong></div>
+                    <div><span class="modal-label">Empfänger</span> ${escHtml(receiver)}</div>
+                    <div><span class="modal-label">Offen</span> <span class="amount-neg">${fmt(m.inv.paymentDifference)}</span></div>
+                </div>
+                <div class="modal-fields">
+                    <label class="modal-field-label">Bankkonto (Handkasse)
+                        <select id="cash-account-select" class="modal-input">${bankOptions}</select>
+                    </label>
+                    <label class="modal-field-label">Betrag (€)
+                        <input id="cash-amount-input" type="number" step="0.01" min="0.01"
+                            class="modal-input" value="${amount.toFixed(2)}">
+                    </label>
+                    <label class="modal-field-label">Datum
+                        <input id="cash-date-input" type="date" class="modal-input" value="${date}">
+                    </label>
+                </div>
+                ${state.cashPaymentError ? `<div class="modal-error">${escHtml(state.cashPaymentError)}</div>` : ''}
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" onclick="closeCashPaymentModal()">Abbrechen</button>
+                <button class="btn-primary" id="cash-pay-review">Weiter →</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+window.openCashPaymentModal = function(invoiceID) {
+    const inv = (state.financeInvoices || []).find(i => i.id === invoiceID);
+    if (!inv) return;
+    state.cashPaymentModal = {
+        inv,
+        bankAccountID: state.financeAccounts.length > 0 ? state.financeAccounts[0].id : 0,
+        amount: null,
+        date: new Date().toISOString().slice(0, 10),
+        confirmed: false,
+    };
+    state.cashPaymentError = '';
+    if (state.financeAccounts.length === 0 && !state.financeAccountsLoading) {
+        loadFinanceAccounts();
+    } else {
+        render();
+    }
+};
+
+window.closeCashPaymentModal = function() {
+    state.cashPaymentModal = null;
+    state.cashPaymentError = '';
+    render();
+};
+
+window.cashPaymentBack = function() {
+    state.cashPaymentModal.confirmed = false;
+    state.cashPaymentError = '';
+    render();
+};
+
+function attachCashPaymentListeners() {
+    // Eingabeansicht: Weiter-Button
+    const reviewBtn = document.getElementById('cash-pay-review');
+    if (reviewBtn) {
+        document.getElementById('cash-account-select')?.addEventListener('change', e => {
+            state.cashPaymentModal.bankAccountID = parseInt(e.target.value, 10);
+        });
+        document.getElementById('cash-amount-input')?.addEventListener('input', e => {
+            state.cashPaymentModal.amount = parseFloat(e.target.value) || 0;
+        });
+        document.getElementById('cash-date-input')?.addEventListener('input', e => {
+            state.cashPaymentModal.date = e.target.value;
+        });
+        reviewBtn.addEventListener('click', () => {
+            const accountID = parseInt(document.getElementById('cash-account-select').value, 10);
+            const amount = parseFloat(document.getElementById('cash-amount-input').value);
+            const date = document.getElementById('cash-date-input').value;
+            if (!accountID) { state.cashPaymentError = 'Bitte ein Bankkonto auswählen.'; render(); return; }
+            if (!amount || amount <= 0) { state.cashPaymentError = 'Bitte einen gültigen Betrag eingeben.'; render(); return; }
+            if (!date) { state.cashPaymentError = 'Bitte ein Datum eingeben.'; render(); return; }
+            state.cashPaymentModal.bankAccountID = accountID;
+            state.cashPaymentModal.amount = amount;
+            state.cashPaymentModal.date = date;
+            state.cashPaymentModal.confirmed = true;
+            state.cashPaymentError = '';
+            render();
+        });
+        return;
+    }
+
+    // Bestätigungsansicht: Buchen-Button
+    const submitBtn = document.getElementById('cash-pay-submit');
+    if (!submitBtn) return;
+
+    submitBtn.addEventListener('click', () => {
+        const m = state.cashPaymentModal;
+        state.cashPaymentLoading = true;
+        state.cashPaymentError = '';
+        render();
+
+        const receiver = (m.inv.receiver || '').split('\n')[0].trim();
+        CreateCashPayment(m.bankAccountID, m.inv.id, m.amount, m.date, m.inv.invNumber || '', receiver)
+            .then(() => {
+                state.cashPaymentLoading = false;
+                state.cashPaymentModal = null;
+                state.cashPaymentError = '';
+                // Reload invoices so the paid invoice disappears / updates
+                loadInvoices(true);
+            })
+            .catch(err => {
+                state.cashPaymentLoading = false;
+                state.cashPaymentError = String(err);
+                render();
+            });
+    });
+}
+
 // ── Event listeners ────────────────────────────────────────────────────────────
 function attachListeners() {
     // Sidebar nav
@@ -944,6 +1198,9 @@ function attachListeners() {
             state.financeSelectedAccountID = 0;
             state.financeInvoices = [];
             state.financeOverview = null;
+            state.expandedInvoiceID = null;
+            state.invoiceItems = {};
+            state.invoiceItemsLoading = {};
             render();
             loadMembers(false);
             // Reload calendar events so birthdays update for new department
