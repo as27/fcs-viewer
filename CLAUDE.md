@@ -64,9 +64,12 @@ fcs-viewer/
   - YAML-Feld `bank_account_ids` pro Department → `Department.BankAccountIDs []int`
   - **Bankkonten**: `GetBankAccounts(dept)` filtert API-Konten nach Config-IDs; `GetBookings(id, from, to)` lädt Buchungen mit Datumsfilter
   - **Offene Rechnungen**: `GetOpenInvoices(dept)` / `ReloadOpenInvoices(dept)` — Invoice-Cache pro Abteilung; Namensabgleich Empfänger ↔ Mitglied (Substring, case-insensitive)
+  - **Rechnungsdetails**: Klick auf Zeile expandiert Positionen via `GetInvoiceItems(invoiceID)` (lazy load, gecacht); Mahngebühren (`charge`) und Rücklastschriftgebühren (`chargeback`) als eigene Positionen
+  - **Barzahlung**: 💵-Icon öffnet Modal; `CreateCashPayment(bankAccountID, amount, date, invNumber, refNumber, receiver)` bucht gegen das gewählte Konto (billingAccount = bankAccountID)
   - **Übersicht**: `GetFinanceOverview(dept)` — Einnahmen/Ausgaben laufender Monat + offene Posten aus Cache
-  - `vendor/easyvapi/model/invoice.go` um `PaymentDifference flexFloat64` erweitert
-  - `vendor/easyvapi/invoice.go`: Defaultquery + `PaymentDifferenceNe`/`PaymentDifferenceGte` in `InvoiceListOptions`
+  - `vendor/easyvapi/model/invoice.go` um `PaymentDifference flexFloat64`, `Charges InvoiceCharges`, `RefNumber string` erweitert
+  - `vendor/easyvapi/invoice.go`: Defaultquery inkl. `charges{charge,chargeback,total}`; `InvoiceListOptions` um `PaymentDifferenceNe`/`PaymentDifferenceGte` erweitert
+  - `InvoiceRow` enthält `Charge` und `Chargeback` für das Frontend
 
 ### Wails JS-Bindings regenerieren
 Nach Änderungen an den Go-Methoden in `app.go`:

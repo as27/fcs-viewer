@@ -256,6 +256,52 @@
 
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: #fffbea; }
+.invoice-row:hover td { background: #fff3cc !important; }
+.invoice-row-expanded td { background: #fff8e1 !important; font-weight: 500; }
+
+/* Detail panel */
+.invoice-detail-row:hover td { background: transparent !important; }
+.invoice-detail-cell {
+    padding: 0 0 4px 0 !important;
+    border-top: none !important;
+    background: #fafafa !important;
+}
+.invoice-detail-loading {
+    padding: 10px 16px 10px 36px;
+    font-size: 13px;
+    color: #555;
+}
+.invoice-items-panel {
+    padding: 4px 0 8px 0;
+    border-left: 3px solid var(--accent, #f5c800);
+    margin: 0 16px 0 32px;
+    background: #fff;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.invoice-item-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: baseline;
+    padding: 5px 12px 5px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.invoice-item-row:last-child { border-bottom: none; }
+.invoice-item-title { color: #222; }
+.invoice-item-desc { color: #888; font-size: 12px; margin-top: 2px; }
+.invoice-item-qty { color: #666; white-space: nowrap; font-size: 12px; }
+.invoice-item-tax { color: #aaa; margin-left: 4px; }
+.invoice-item-total {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 80px;
+    color: #333;
+}
+.invoice-item-charge .invoice-item-title { color: #b45309; }
+.invoice-item-charge .invoice-item-total { color: #b45309; }
 
 /* ── Members toolbar ───────────────────────────────────────────────────────── */
 .members-toolbar {
@@ -792,3 +838,147 @@
 .amount-pos { color: #16a34a; font-weight: 500; }
 .amount-neg { color: #dc2626; font-weight: 500; }
 .error-msg { color: #dc2626; padding: 16px; font-size: 13px; }
+
+/* ── Cash payment button ───────────────────────────────────────────────────── */
+.btn-cash-pay {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    margin-left: 6px;
+    border-radius: 4px;
+    opacity: 0.55;
+    vertical-align: middle;
+    line-height: 1;
+    transition: opacity 0.15s, background 0.15s;
+}
+.btn-cash-pay:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+
+/* ── Modal ─────────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    width: 420px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+}
+.modal-title { font-size: 15px; font-weight: 600; color: #111; }
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #888;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+.modal-close:hover { background: #f0f0f0; color: #333; }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.modal-invoice-info {
+    background: #f8f6f0;
+    border: 1px solid #e8e4d8;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: #333;
+}
+.modal-invoice-info code {
+    font-family: monospace;
+    font-size: 12px;
+    background: #ece9e0;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.modal-label { color: #888; margin-right: 6px; min-width: 80px; display: inline-block; }
+.modal-fields { display: flex; flex-direction: column; gap: 12px; }
+.modal-field-label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+}
+.modal-input {
+    padding: 7px 10px;
+    border: 1px solid #d0ccc0;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: #111;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.modal-input:focus { border-color: var(--accent-dark); }
+.modal-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #dc2626;
+}
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+}
+
+/* ── Modal confirm view ────────────────────────────────────────────────────── */
+.modal-confirm-intro {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+}
+.modal-confirm-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e8e4d8;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+}
+.modal-confirm-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f0ede6;
+}
+.modal-confirm-row:last-child { border-bottom: none; }
+.modal-confirm-row .modal-label {
+    min-width: 100px;
+    font-size: 12px;
+    color: #888;
+    flex-shrink: 0;
+}
