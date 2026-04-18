@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.15] - 2026-04-18
+
+### Geändert
+- Finanz-Modul: Spalten „Empfänger" und „Beschreibung" in Bankbuchungen- und Offene-Rechnungen-Tabelle mit `max-width` (18 vw bzw. 22 vw) begrenzt; Text umbricht statt abzuschneiden
+
 ## [0.91.14] - 2026-04-18
 
 ### Neu

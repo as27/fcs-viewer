@@ -466,8 +466,8 @@ function renderFinanceAccounts() {
             const amtStr = b.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
             return `<tr>
                 <td>${formatDate(b.date)}</td>
-                <td>${escHtml(b.receiver || '')}</td>
-                <td>${escHtml(b.description || '')}</td>
+                <td class="col-receiver">${escHtml(b.receiver || '')}</td>
+                <td class="col-desc">${escHtml(b.description || '')}</td>
                 <td class="${amtClass}" style="text-align:right;font-variant-numeric:tabular-nums">${amtStr}</td>
             </tr>`;
         }).join('');
@@ -480,7 +480,7 @@ function renderFinanceAccounts() {
             <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
-                    <th>Datum</th><th>Empfänger</th><th>Beschreibung</th><th style="text-align:right">Betrag</th>
+                    <th>Datum</th><th class="col-receiver">Empfänger</th><th class="col-desc">Beschreibung</th><th style="text-align:right">Betrag</th>
                 </tr></thead>
                 <tbody>${rows}${empty}</tbody>
             </table>
@@ -553,8 +553,8 @@ function renderFinanceInvoices() {
         const mainRow = `<tr class="invoice-row${isExpanded ? ' invoice-row-expanded' : ''}" onclick="toggleInvoiceItems(${inv.id})" style="cursor:pointer">
             <td><span style="margin-right:6px;color:#888">${expandIcon}</span>${escHtml(inv.invNumber || '')}</td>
             <td>${formatDate(inv.date)}</td>
-            <td>${escHtml(inv.receiver || '')}</td>
-            <td>${escHtml(inv.description || '')}</td>
+            <td class="col-receiver">${escHtml(inv.receiver || '')}</td>
+            <td class="col-desc">${escHtml(inv.description || '')}</td>
             <td style="text-align:right;font-variant-numeric:tabular-nums">${totalFmt}</td>
             <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${diffFmt}${cashIcon}</td>
         </tr>`;
@@ -627,7 +627,7 @@ function renderFinanceInvoices() {
             <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
-                    <th>Nr.</th><th>Datum</th><th>Empfänger</th><th>Beschreibung</th>
+                    <th>Nr.</th><th>Datum</th><th class="col-receiver">Empfänger</th><th class="col-desc">Beschreibung</th>
                     <th style="text-align:right">Gesamt</th><th style="text-align:right">Offen</th>
                 </tr></thead>
                 <tbody>${rows}${empty}</tbody>

@@ -257,6 +257,9 @@
 .invoice-row:hover td { background: #fff3cc !important; }
 .invoice-row-expanded td { background: #fff8e1 !important; font-weight: 500; }
 
+.col-receiver  { max-width: 18vw; min-width: 8rem; white-space: normal; word-break: break-word; }
+.col-desc      { max-width: 22vw; min-width: 10rem; white-space: normal; word-break: break-word; }
+
 /* Detail panel */
 .invoice-detail-row:hover td { background: transparent !important; }
 .invoice-detail-cell {

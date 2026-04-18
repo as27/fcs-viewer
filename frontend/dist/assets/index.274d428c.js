@@ -136,7 +136,7 @@
             <div class="card-header overview-toggle" data-dept="${u(t.name)}" style="cursor:pointer">
                 <span class="card-title">${u(t.name)}</span>
                 <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:11px;color:#aaa">${t.groups.length} Gruppe${t.groups.length!==1?"n":""}</span>
+                    <span style="font-size:0.79rem;color:#aaa">${t.groups.length} Gruppe${t.groups.length!==1?"n":""}</span>
                     <span style="color:#aaa;display:flex;align-items:center">${a}</span>
                 </div>
             </div>
@@ -151,7 +151,7 @@
                 <tbody>
                     ${t.groups.map(o=>o.notFound?`<tr>
                             <td><span class="badge badge-amber">${u(o.short)}</span></td>
-                            <td colspan="3" style="color:#d97706;font-size:11px">Gruppe nicht in easyVerein gefunden</td>
+                            <td colspan="3" style="color:#d97706;font-size:0.79rem">Gruppe nicht in easyVerein gefunden</td>
                         </tr>`:`<tr>
                             <td><span class="badge badge-yellow">${u(o.short)}</span></td>
                             <td style="font-weight:600;white-space:normal">${u(o.name)}</td>
@@ -161,14 +161,14 @@
         </div>`}).join(""):'<div class="placeholder">Keine Daten verf\xFCgbar.</div>'}const he=["overview","accounts","invoices"],be={overview:"\xDCbersicht",accounts:"Bankkonten",invoices:"Offene Rechnungen"};function ye(){const t=he.map(a=>`
         <button class="sub-tab${e.financeTab===a?" active":""}"
             onclick="setFinanceTab('${a}')">${be[a]}</button>
-    `).join("");let n="";return e.financeTab==="overview"?n=we():e.financeTab==="accounts"?n=xe():e.financeTab==="invoices"&&(n=$e()),`
+    `).join("");let n="";return e.financeTab==="overview"?n=we():e.financeTab==="accounts"?n=$e():e.financeTab==="invoices"&&(n=xe()),`
         <div class="sub-tab-bar">${t}</div>
         ${n}
-    `}function we(){const t=e.financeOverview,n=e.financeOverviewLoading,a=w=>w!=null?w.toLocaleString("de-DE",{style:"currency",currency:"EUR"}):"\u2014",c=new Date().toLocaleString("de-DE",{month:"long",year:"numeric"}),i=(w,m,x,$)=>`
+    `}function we(){const t=e.financeOverview,n=e.financeOverviewLoading,a=w=>w!=null?w.toLocaleString("de-DE",{style:"currency",currency:"EUR"}):"\u2014",c=new Date().toLocaleString("de-DE",{month:"long",year:"numeric"}),i=(w,m,$,x)=>`
         <div class="stat-card">
             <div class="stat-label">${w}</div>
-            <div class="stat-value${$?" "+$:""}">${n?'<span class="spinner"></span>':m}</div>
-            <div class="stat-sub">${x}</div>
+            <div class="stat-value${x?" "+x:""}">${n?'<span class="spinner"></span>':m}</div>
+            <div class="stat-sub">${$}</div>
         </div>`,s=t?a(t.incomeMonth):"\u2014",d=t?a(Math.abs(t.expenseMonth)):"\u2014",p=t?a(t.balanceMonth):"\u2014",g=t?a(t.openInvoices):"\u2014",v=t?`${t.invoiceCount} offene Rechnung${t.invoiceCount!==1?"en":""}`:"Noch nicht geladen",f=t?t.balanceMonth>=0?"amount-pos":"amount-neg":"";return`
         <div class="stat-row">
             ${i("Einnahmen "+c,s,"Summe positive Buchungen","amount-pos")}
@@ -177,17 +177,17 @@
             ${i("Offene Posten",g,v,"amount-neg")}
         </div>
         ${e.financeOverviewError?`<div class="error-msg">${e.financeOverviewError}</div>`:""}
-    `}function xe(){if(e.financeAccountsLoading)return'<div class="placeholder"><span class="spinner"></span></div>';if(e.financeAccountsError)return`<div class="error-msg">${e.financeAccountsError}</div>`;if(!e.financeAccounts||e.financeAccounts.length===0)return`<div class="card"><div class="card-header"><span class="card-title">Bankkonten</span></div>
+    `}function $e(){if(e.financeAccountsLoading)return'<div class="placeholder"><span class="spinner"></span></div>';if(e.financeAccountsError)return`<div class="error-msg">${e.financeAccountsError}</div>`;if(!e.financeAccounts||e.financeAccounts.length===0)return`<div class="card"><div class="card-header"><span class="card-title">Bankkonten</span></div>
             <div class="placeholder" style="padding:40px">Keine Bankkonten f\xFCr diese Abteilung konfiguriert.</div></div>`;const t=e.financeAccounts,n=e.financeSelectedAccountID||t[0].id,a=t.find(s=>s.id===n)||t[0],o=t.map(s=>`<option value="${s.id}"${s.id===n?" selected":""}>${s.name}</option>`).join(""),c=a.balance.toLocaleString("de-DE",{style:"currency",currency:"EUR"});let i="";if(e.financeBookingsLoading)i='<div class="placeholder"><span class="spinner"></span></div>';else if(e.financeBookingsError)i=`<div class="error-msg">${e.financeBookingsError}</div>`;else{const s=(e.financeBookingSearch||"").toLowerCase(),d=(e.financeBookings||[]).filter(v=>s?(v.receiver||"").toLowerCase().includes(s)||(v.description||"").toLowerCase().includes(s):!0),p=d.map(v=>{const f=v.amount>=0?"amount-pos":"amount-neg",w=v.amount.toLocaleString("de-DE",{style:"currency",currency:"EUR"});return`<tr>
                 <td>${F(v.date)}</td>
-                <td>${b(v.receiver||"")}</td>
-                <td>${b(v.description||"")}</td>
+                <td class="col-receiver">${b(v.receiver||"")}</td>
+                <td class="col-desc">${b(v.description||"")}</td>
                 <td class="${f}" style="text-align:right;font-variant-numeric:tabular-nums">${w}</td>
             </tr>`}).join(""),g=d.length===0?'<tr><td colspan="4" style="text-align:center;padding:24px;color:#888">Keine Buchungen gefunden.</td></tr>':"";i=`
             <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
-                    <th>Datum</th><th>Empf\xE4nger</th><th>Beschreibung</th><th style="text-align:right">Betrag</th>
+                    <th>Datum</th><th class="col-receiver">Empf\xE4nger</th><th class="col-desc">Beschreibung</th><th style="text-align:right">Betrag</th>
                 </tr></thead>
                 <tbody>${p}${g}</tbody>
             </table>
@@ -200,14 +200,14 @@
                 </select>
             </div>
             <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:12px">Kontostand</span><br><strong style="font-size:16px">${c}</strong></div>
-                ${a.iban?`<div style="margin-left:16px"><span style="color:#888;font-size:12px">IBAN</span><br><span style="font-family:monospace;font-size:13px">${a.iban}</span></div>`:""}
+                <div><span style="color:#888;font-size:0.86rem">Kontostand</span><br><strong style="font-size:1.14rem">${c}</strong></div>
+                ${a.iban?`<div style="margin-left:16px"><span style="color:#888;font-size:0.86rem">IBAN</span><br><span style="font-family:monospace;font-size:0.93rem">${a.iban}</span></div>`:""}
             </div>
             <div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <label style="font-size:12px;color:#666">Von</label>
+                <label style="font-size:0.86rem;color:#666">Von</label>
                 <input type="date" class="search-input" style="width:140px" value="${e.financeBookingDateFrom}"
                     onchange="setFinanceDateFrom(this.value)">
-                <label style="font-size:12px;color:#666">Bis</label>
+                <label style="font-size:0.86rem;color:#666">Bis</label>
                 <input type="date" class="search-input" style="width:140px" value="${e.financeBookingDateTo}"
                     onchange="setFinanceDateTo(this.value)">
                 <button class="btn-primary" onclick="loadFinanceBookings()">Laden</button>
@@ -219,14 +219,14 @@
             </div>
             ${i}
         </div>
-    `}function b(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}function $e(){if(e.financeInvoicesLoading)return'<div class="placeholder"><span class="spinner"></span></div>';if(e.financeInvoicesError)return`<div class="error-msg">${e.financeInvoicesError}</div>`;const t=(e.financeInvoiceSearch||"").toLowerCase(),n=(e.financeInvoices||[]).filter(s=>t?(s.receiver||"").toLowerCase().includes(t)||(s.invNumber||"").toLowerCase().includes(t)||(s.description||"").toLowerCase().includes(t):!0),o=n.reduce((s,d)=>s+d.paymentDifference,0).toLocaleString("de-DE",{style:"currency",currency:"EUR"}),c=n.flatMap(s=>{const d=s.paymentDifference.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),p=s.totalPrice.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),g=e.expandedInvoiceID===s.id,v=e.invoiceItemsLoading[s.id],f=g?"\u25BE":"\u25B8",w=`<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${s.id})">\u{1F4B5}</button>`,m=`<tr class="invoice-row${g?" invoice-row-expanded":""}" onclick="toggleInvoiceItems(${s.id})" style="cursor:pointer">
+    `}function b(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}function xe(){if(e.financeInvoicesLoading)return'<div class="placeholder"><span class="spinner"></span></div>';if(e.financeInvoicesError)return`<div class="error-msg">${e.financeInvoicesError}</div>`;const t=(e.financeInvoiceSearch||"").toLowerCase(),n=(e.financeInvoices||[]).filter(s=>t?(s.receiver||"").toLowerCase().includes(t)||(s.invNumber||"").toLowerCase().includes(t)||(s.description||"").toLowerCase().includes(t):!0),o=n.reduce((s,d)=>s+d.paymentDifference,0).toLocaleString("de-DE",{style:"currency",currency:"EUR"}),c=n.flatMap(s=>{const d=s.paymentDifference.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),p=s.totalPrice.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),g=e.expandedInvoiceID===s.id,v=e.invoiceItemsLoading[s.id],f=g?"\u25BE":"\u25B8",w=`<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${s.id})">\u{1F4B5}</button>`,m=`<tr class="invoice-row${g?" invoice-row-expanded":""}" onclick="toggleInvoiceItems(${s.id})" style="cursor:pointer">
             <td><span style="margin-right:6px;color:#888">${f}</span>${b(s.invNumber||"")}</td>
             <td>${F(s.date)}</td>
-            <td>${b(s.receiver||"")}</td>
-            <td>${b(s.description||"")}</td>
+            <td class="col-receiver">${b(s.receiver||"")}</td>
+            <td class="col-desc">${b(s.description||"")}</td>
             <td style="text-align:right;font-variant-numeric:tabular-nums">${p}</td>
             <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${d}${w}</td>
-        </tr>`;if(!g)return[m];let x;if(v)x='<div class="invoice-detail-loading"><span class="spinner"></span> Lade Positionen\u2026</div>';else{const I=e.invoiceItems[s.id]||[],l=k=>k.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),h=I.map(k=>{const V=k.quantity*k.unitPrice,Y=k.taxRate>0?`<span class="invoice-item-tax">${k.taxRate}% ${b(k.taxName||"MwSt.")}</span>`:"";return`<div class="invoice-item-row">
+        </tr>`;if(!g)return[m];let $;if(v)$='<div class="invoice-detail-loading"><span class="spinner"></span> Lade Positionen\u2026</div>';else{const I=e.invoiceItems[s.id]||[],l=k=>k.toLocaleString("de-DE",{style:"currency",currency:"EUR"}),h=I.map(k=>{const V=k.quantity*k.unitPrice,Y=k.taxRate>0?`<span class="invoice-item-tax">${k.taxRate}% ${b(k.taxName||"MwSt.")}</span>`:"";return`<div class="invoice-item-row">
                     <div class="invoice-item-title">
                         ${b(k.title||"")}
                         ${k.description?`<div class="invoice-item-desc">${b(k.description)}</div>`:""}
@@ -241,16 +241,16 @@
                 <div class="invoice-item-title">Bankgeb\xFChr (R\xFCcklastschrift)</div>
                 <div class="invoice-item-qty"></div>
                 <div class="invoice-item-total">${l(s.chargeback)}</div>
-            </div>`:"";x=I.length>0||s.charge>0||s.chargeback>0?`<div class="invoice-items-panel">${h}${E}${S}</div>`:'<div class="invoice-detail-loading" style="color:#888">Keine Positionen gefunden.</div>'}const $=`<tr class="invoice-detail-row"><td colspan="6" class="invoice-detail-cell">${x}</td></tr>`;return[m,$]}).join(""),i=n.length===0?`<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">${e.financeInvoices.length===0?"Keine offenen Rechnungen.":"Keine Treffer."}</td></tr>`:"";return`
+            </div>`:"";$=I.length>0||s.charge>0||s.chargeback>0?`<div class="invoice-items-panel">${h}${E}${S}</div>`:'<div class="invoice-detail-loading" style="color:#888">Keine Positionen gefunden.</div>'}const x=`<tr class="invoice-detail-row"><td colspan="6" class="invoice-detail-cell">${$}</td></tr>`;return[m,x]}).join(""),i=n.length===0?`<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">${e.financeInvoices.length===0?"Keine offenen Rechnungen.":"Keine Treffer."}</td></tr>`:"";return`
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Offene Rechnungen</span>
                 <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
             </div>
             <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:12px">Offener Gesamtbetrag</span><br>
-                    <strong class="amount-neg" style="font-size:16px">${o}</strong>
-                    <span style="color:#888;font-size:12px;margin-left:6px">(${n.length} Rechnung${n.length!==1?"en":""})</span>
+                <div><span style="color:#888;font-size:0.86rem">Offener Gesamtbetrag</span><br>
+                    <strong class="amount-neg" style="font-size:1.14rem">${o}</strong>
+                    <span style="color:#888;font-size:0.86rem;margin-left:6px">(${n.length} Rechnung${n.length!==1?"en":""})</span>
                 </div>
                 <div style="margin-left:auto">
                     <input id="invoice-search-input" type="text" class="search-input"
@@ -261,7 +261,7 @@
             <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
-                    <th>Nr.</th><th>Datum</th><th>Empf\xE4nger</th><th>Beschreibung</th>
+                    <th>Nr.</th><th>Datum</th><th class="col-receiver">Empf\xE4nger</th><th class="col-desc">Beschreibung</th>
                     <th style="text-align:right">Gesamt</th><th style="text-align:right">Offen</th>
                 </tr></thead>
                 <tbody>${c}${i}</tbody>
@@ -299,24 +299,24 @@
             <button class="btn-ghost cal-nav" id="cal-prev">&#8249;</button>
             <span class="cal-month-title">${ke[n-1]} ${t}</span>
             <button class="btn-ghost cal-nav" id="cal-next">&#8250;</button>
-            <button class="btn-ghost" id="cal-today" style="margin-left:8px;font-size:12px">Heute</button>
+            <button class="btn-ghost" id="cal-today" style="margin-left:8px;font-size:0.86rem">Heute</button>
             ${d}
-            <button class="btn-ghost" id="cal-reload" style="margin-left:auto;font-size:12px">Neu laden</button>
+            <button class="btn-ghost" id="cal-reload" style="margin-left:auto;font-size:0.86rem">Neu laden</button>
         </div>`,g=s?Le(c,t,n):Be(c);return`
         <div class="cal-layout">
             <div class="cal-sidebar">
                 <div class="cal-sidebar-title">Kalender</div>
-                <div class="cal-filters">${i||'<span style="color:#aaa;font-size:12px">Keine Kalender</span>'}</div>
+                <div class="cal-filters">${i||'<span style="color:#aaa;font-size:0.86rem">Keine Kalender</span>'}</div>
             </div>
             <div class="cal-main">
                 ${p}
                 ${g}
             </div>
         </div>
-    `}function Le(t,n,a){const o={};for(const g of t){const v=g.start.slice(0,10);o[v]||(o[v]=[]),o[v].push(g)}const i=(new Date(n,a-1,1).getDay()+6)%7,s=new Date(n,a,0).getDate(),d=new Date().toISOString().slice(0,10);let p="";for(let g=0;g<i;g++)p+='<div class="cal-cell cal-cell--empty"></div>';for(let g=1;g<=s;g++){const v=`${n}-${String(a).padStart(2,"0")}-${String(g).padStart(2,"0")}`,f=v===d,w=o[v]||[],m=w.slice(0,3).map($=>`<div class="cal-pill" style="background:${u($.color)}" title="${u($.name)}">${u($.name)}</div>`).join(""),x=w.length>3?`<div class="cal-pill cal-pill--more">+${w.length-3}</div>`:"";p+=`
+    `}function Le(t,n,a){const o={};for(const g of t){const v=g.start.slice(0,10);o[v]||(o[v]=[]),o[v].push(g)}const i=(new Date(n,a-1,1).getDay()+6)%7,s=new Date(n,a,0).getDate(),d=new Date().toISOString().slice(0,10);let p="";for(let g=0;g<i;g++)p+='<div class="cal-cell cal-cell--empty"></div>';for(let g=1;g<=s;g++){const v=`${n}-${String(a).padStart(2,"0")}-${String(g).padStart(2,"0")}`,f=v===d,w=o[v]||[],m=w.slice(0,3).map(x=>`<div class="cal-pill" style="background:${u(x.color)}" title="${u(x.name)}">${u(x.name)}</div>`).join(""),$=w.length>3?`<div class="cal-pill cal-pill--more">+${w.length-3}</div>`:"";p+=`
             <div class="cal-cell ${f?"cal-cell--today":""}">
                 <span class="cal-day-num">${g}</span>
-                <div class="cal-pills">${m}${x}</div>
+                <div class="cal-pills">${m}${$}</div>
             </div>`}return`
         <div class="cal-grid">
             <div class="cal-weekday">Mo</div>
@@ -327,12 +327,12 @@
             <div class="cal-weekday">Sa</div>
             <div class="cal-weekday">So</div>
             ${p}
-        </div>`}function Be(t){if(t.length===0)return'<div class="placeholder" style="padding:40px">Keine Termine in diesem Monat.</div>';const n=[...t].sort((d,p)=>d.start.localeCompare(p.start)),a=[];let o=null,c=[];for(const d of n){const p=d.start.slice(0,10);p!==o&&(o&&a.push({date:o,events:c}),o=p,c=[]),c.push(d)}o&&a.push({date:o,events:c});const i=new Date().toISOString().slice(0,10);return`<div class="cal-list">${a.map(d=>{const p=new Date(d.date+"T00:00:00"),g=["So","Mo","Di","Mi","Do","Fr","Sa"][p.getDay()],v=p.getDate(),f=d.date===i,w=d.events.map(m=>{const x=m.allDay?"Ganzt\xE4gig":m.start.length>10?m.start.slice(11,16)+" Uhr":"",$=!m.allDay&&m.end&&m.end.length>10?" \u2013 "+m.end.slice(11,16)+" Uhr":"",I=m.type==="birthday"?'<span class="cal-list-badge cal-list-badge--birthday">\u{1F382}</span>':"";return`
+        </div>`}function Be(t){if(t.length===0)return'<div class="placeholder" style="padding:40px">Keine Termine in diesem Monat.</div>';const n=[...t].sort((d,p)=>d.start.localeCompare(p.start)),a=[];let o=null,c=[];for(const d of n){const p=d.start.slice(0,10);p!==o&&(o&&a.push({date:o,events:c}),o=p,c=[]),c.push(d)}o&&a.push({date:o,events:c});const i=new Date().toISOString().slice(0,10);return`<div class="cal-list">${a.map(d=>{const p=new Date(d.date+"T00:00:00"),g=["So","Mo","Di","Mi","Do","Fr","Sa"][p.getDay()],v=p.getDate(),f=d.date===i,w=d.events.map(m=>{const $=m.allDay?"Ganzt\xE4gig":m.start.length>10?m.start.slice(11,16)+" Uhr":"",x=!m.allDay&&m.end&&m.end.length>10?" \u2013 "+m.end.slice(11,16)+" Uhr":"",I=m.type==="birthday"?'<span class="cal-list-badge cal-list-badge--birthday">\u{1F382}</span>':"";return`
                 <div class="cal-list-event">
                     <span class="cal-list-dot" style="background:${u(m.color)}"></span>
                     <div class="cal-list-event-body">
                         <span class="cal-list-name">${I}${u(m.name)}</span>
-                        <span class="cal-list-meta">${u(m.calendarName)}${x?" \xB7 "+x+$:""}</span>
+                        <span class="cal-list-meta">${u(m.calendarName)}${$?" \xB7 "+$+x:""}</span>
                     </div>
                 </div>`}).join("");return`
             <div class="cal-list-row ${f?"cal-list-row--today":""}">
@@ -351,13 +351,13 @@
                     <div class="settings-field">
                         <label>Schriftgr\xF6\xDFe</label>
                         <div class="settings-value" style="gap:10px;align-items:center">
-                            <button class="btn-ghost font-size-btn" data-delta="-1" style="font-size:16px;padding:2px 10px;line-height:1" title="Kleiner">A\u2212</button>
+                            <button class="btn-ghost font-size-btn" data-delta="-1" style="font-size:1.14rem;padding:2px 10px;line-height:1" title="Kleiner">A\u2212</button>
                             <input type="range" id="font-size-slider"
                                 min="${K}" max="${G}" value="${a}"
                                 style="width:120px;cursor:pointer">
-                            <button class="btn-ghost font-size-btn" data-delta="1" style="font-size:18px;padding:2px 10px;line-height:1" title="Gr\xF6\xDFer">A+</button>
+                            <button class="btn-ghost font-size-btn" data-delta="1" style="font-size:1.29rem;padding:2px 10px;line-height:1" title="Gr\xF6\xDFer">A+</button>
                             <span id="font-size-label" style="min-width:32px;text-align:right;font-weight:600">${a}px</span>
-                            <button class="btn-ghost" id="font-size-reset" style="font-size:11px;padding:3px 8px">Zur\xFCcksetzen</button>
+                            <button class="btn-ghost" id="font-size-reset" style="font-size:0.79rem;padding:3px 8px">Zur\xFCcksetzen</button>
                         </div>
                     </div>
                 </div>
@@ -381,7 +381,7 @@
                         <div class="settings-value">
                             <span>${u(t.publicKey||"\u2014")}</span>
                             ${t.publicKey?`<button class="copy-btn" data-copy="${u(t.publicKey)}">Kopieren</button>`:""}
-                            ${t.publicKey?'<button class="btn-ghost" id="export-pubkey-btn" style="font-size:11px;padding:3px 8px">Als Datei speichern</button>':""}
+                            ${t.publicKey?'<button class="btn-ghost" id="export-pubkey-btn" style="font-size:0.79rem;padding:3px 8px">Als Datei speichern</button>':""}
                         </div>
                     </div>
                     <div class="settings-field">
@@ -463,4 +463,4 @@
             </div>
         </div>
     </div>`}window.openCashPaymentModal=function(t){const n=(e.financeInvoices||[]).find(a=>a.id===t);!n||(e.cashPaymentModal={inv:n,bankAccountID:e.financeAccounts.length>0?e.financeAccounts[0].id:0,amount:null,date:new Date().toISOString().slice(0,10),confirmed:!1},e.cashPaymentError="",e.financeAccounts.length===0&&!e.financeAccountsLoading?U():r())};window.closeCashPaymentModal=function(){e.cashPaymentModal=null,e.cashPaymentError="",r()};window.cashPaymentBack=function(){e.cashPaymentModal.confirmed=!1,e.cashPaymentError="",r()};function Ce(){var a,o,c;const t=document.getElementById("cash-pay-review");if(t){(a=document.getElementById("cash-account-select"))==null||a.addEventListener("change",i=>{e.cashPaymentModal.bankAccountID=parseInt(i.target.value,10)}),(o=document.getElementById("cash-amount-input"))==null||o.addEventListener("input",i=>{e.cashPaymentModal.amount=parseFloat(i.target.value)||0}),(c=document.getElementById("cash-date-input"))==null||c.addEventListener("input",i=>{e.cashPaymentModal.date=i.target.value}),t.addEventListener("click",()=>{const i=parseInt(document.getElementById("cash-account-select").value,10),s=parseFloat(document.getElementById("cash-amount-input").value),d=document.getElementById("cash-date-input").value;if(!i){e.cashPaymentError="Bitte ein Bankkonto ausw\xE4hlen.",r();return}if(!s||s<=0){e.cashPaymentError="Bitte einen g\xFCltigen Betrag eingeben.",r();return}if(!d){e.cashPaymentError="Bitte ein Datum eingeben.",r();return}e.cashPaymentModal.bankAccountID=i,e.cashPaymentModal.amount=s,e.cashPaymentModal.date=d,e.cashPaymentModal.confirmed=!0,e.cashPaymentError="",r()});return}const n=document.getElementById("cash-pay-submit");!n||n.addEventListener("click",()=>{const i=e.cashPaymentModal;e.cashPaymentLoading=!0,e.cashPaymentError="",r();const s=(i.inv.receiver||"").split(`
-`)[0].trim();Z(i.bankAccountID,i.inv.id,i.amount,i.date,i.inv.invNumber||"",s).then(()=>{e.cashPaymentLoading=!1,e.cashPaymentModal=null,e.cashPaymentError="",z(!0)}).catch(d=>{e.cashPaymentLoading=!1,e.cashPaymentError=String(d),r()})})}function q(){document.querySelectorAll("[data-tab]").forEach(l=>{l.addEventListener("click",()=>{e.activeTab=l.dataset.tab,e.activeTab==="settings"&&!e.settings&&H(),e.activeTab==="overview"&&!e.overview&&!e.overviewLoading&&Te(),e.activeTab==="calendar"&&!e.calLoading&&Fe(),e.activeTab==="finance"&&!e.financeOverview&&!e.financeOverviewLoading&&O(),r()})});const t=document.getElementById("dept-select");t&&t.addEventListener("change",()=>{e.selectedDept=t.value,e.members=[],e.error="",e.financeAccounts=[],e.financeBookings=[],e.financeSelectedAccountID=0,e.financeInvoices=[],e.financeOverview=null,e.expandedInvoiceID=null,e.invoiceItems={},e.invoiceItemsLoading={},r(),P(!1),e.calCalendars.length>0&&B()});const n=document.getElementById("search-input");n&&(n.addEventListener("input",l=>{e.search=l.target.value,y()}),n.focus(),n.setSelectionRange(n.value.length,n.value.length));const a=document.getElementById("finance-search-input");a&&(a.addEventListener("input",l=>{e.financeBookingSearch=l.target.value,y()}),a.focus(),a.setSelectionRange(a.value.length,a.value.length));const o=document.getElementById("invoice-search-input");o&&(o.addEventListener("input",l=>{e.financeInvoiceSearch=l.target.value,y()}),o.focus(),o.setSelectionRange(o.value.length,o.value.length));const c=document.getElementById("reload-btn");c&&c.addEventListener("click",()=>P(!0));const i=document.getElementById("excel-export-btn");i&&i.addEventListener("click",De);const s=document.getElementById("export-pubkey-btn");s&&s.addEventListener("click",Ae);const d=document.getElementById("font-size-slider");d&&d.addEventListener("input",l=>{const h=parseInt(l.target.value,10);D(h);const E=document.getElementById("font-size-label");E&&(E.textContent=h+"px")}),document.querySelectorAll(".font-size-btn").forEach(l=>{l.addEventListener("click",()=>{const h=parseInt(l.dataset.delta,10),E=T(),S=Math.min(G,Math.max(K,E+h));D(S),d&&(d.value=S);const A=document.getElementById("font-size-label");A&&(A.textContent=S+"px")})});const p=document.getElementById("font-size-reset");p&&p.addEventListener("click",()=>{D(C),d&&(d.value=C);const l=document.getElementById("font-size-label");l&&(l.textContent=C+"px")});const g=document.getElementById("col-toggle-btn");g&&g.addEventListener("click",l=>{l.stopPropagation(),e.colMenuOpen=!e.colMenuOpen,y()}),document.querySelectorAll("[data-col]").forEach(l=>{l.addEventListener("change",h=>{e.columns[parseInt(h.target.dataset.col)].visible=h.target.checked,y()})}),document.querySelectorAll("th[data-sort]").forEach(l=>{l.addEventListener("click",()=>{const h=l.dataset.sort;e.sortDir=e.sortCol===h&&e.sortDir==="asc"?"desc":"asc",e.sortCol=h,y()})}),document.querySelectorAll("[data-copy]").forEach(l=>{l.addEventListener("click",()=>{navigator.clipboard.writeText(l.dataset.copy).catch(()=>{});const h=l.textContent;l.textContent="Kopiert!",setTimeout(()=>{l.textContent=h},1500)})}),document.querySelectorAll(".overview-toggle").forEach(l=>{l.addEventListener("click",()=>{const h=l.dataset.dept;e.overviewExpanded[h]=e.overviewExpanded[h]===!1,y()})});const v=document.getElementById("reload-config-btn");v&&v.addEventListener("click",Oe);const f=document.getElementById("cal-prev");f&&f.addEventListener("click",()=>{e.calMonth--,e.calMonth<1&&(e.calMonth=12,e.calYear--),B()});const w=document.getElementById("cal-next");w&&w.addEventListener("click",()=>{e.calMonth++,e.calMonth>12&&(e.calMonth=1,e.calYear++),B()});const m=document.getElementById("cal-today");m&&m.addEventListener("click",()=>{const l=new Date;e.calYear=l.getFullYear(),e.calMonth=l.getMonth()+1,B()});const x=document.getElementById("cal-reload");x&&x.addEventListener("click",()=>B());const $=document.getElementById("cal-view-month");$&&$.addEventListener("click",()=>{e.calView="month",y()});const I=document.getElementById("cal-view-list");I&&I.addEventListener("click",()=>{e.calView="list",y()}),document.querySelectorAll(".cal-filter-cb").forEach(l=>{l.addEventListener("change",h=>{const E=parseInt(h.target.dataset.calid);e.calEnabled[E]=h.target.checked,y()})}),e.colMenuOpen&&setTimeout(()=>{document.addEventListener("click",l=>{l.target.closest(".col-toggle")||(e.colMenuOpen=!1,y())},{once:!0})},0)}function y(){const t=document.getElementById("content");t&&(t.innerHTML=j()),q()}async function De(){if(!!e.selectedDept)try{if(await W(e.selectedDept)){const n=document.getElementById("excel-export-btn");if(n){const a=n.innerHTML;n.textContent="Gespeichert!",setTimeout(()=>{n.innerHTML=a},2e3)}}}catch(t){alert("Excel-Export fehlgeschlagen: "+String(t))}}async function Ae(){try{if(await J()){const n=document.getElementById("export-pubkey-btn");if(n){const a=n.textContent;n.textContent="Gespeichert!",setTimeout(()=>{n.textContent=a},2e3)}}}catch(t){alert("Fehler beim Speichern des Public Keys: "+String(t))}}async function Pe(){try{const t=await R();e.departments=t||[],e.departments.length>0&&!e.selectedDept&&(e.selectedDept=e.departments[0]),r(),e.selectedDept&&P(!1)}catch(t){e.error=String(t),r()}}async function P(t){if(!!e.selectedDept){e.loading=!0,e.error="",r();try{const n=await(t?re:se)(e.selectedDept);e.members=n||[]}catch(n){e.error=String(n),e.members=[]}finally{e.loading=!1,r()}}}async function Te(){e.overviewLoading=!0,e.overviewError="",e.activeTab==="overview"&&y();try{e.overview=await ne()}catch(t){e.overviewError=String(t)}finally{e.overviewLoading=!1,e.activeTab==="overview"&&y()}}function _(t){t&&t.activeModules&&t.activeModules.length>0?e.activeModules=t.activeModules:e.activeModules=null;const n=["overview","members","finance","calendar"];n.includes(e.activeTab)&&!M(e.activeTab)&&(e.activeTab=n.find(a=>M(a))||"settings")}async function H(){try{e.settings=await oe(),_(e.settings),r()}catch(t){e.settings={configError:String(t),publicKey:"",baseURL:"",tokenMasked:"",configURL:""},e.activeTab==="settings"&&y()}}async function Oe(){e.configLoading=!0,e.settings=null,e.overview=null,y();try{e.settings=await le(),_(e.settings);const t=await R();e.departments=t||[],e.departments.length>0&&!e.departments.includes(e.selectedDept)&&(e.selectedDept=e.departments[0],e.members=[])}catch(t){e.settings={configError:String(t),publicKey:"",baseURL:"",tokenMasked:"",configURL:""}}finally{e.configLoading=!1,r()}}async function Fe(){if(e.calCalendars.length===0)try{const t=await te();e.calCalendars=t||[];for(const n of e.calCalendars)n.id in e.calEnabled||(e.calEnabled[n.id]=!0);-1 in e.calEnabled||(e.calEnabled[-1]=!0)}catch(t){e.calError=String(t),e.calLoading=!1,e.activeTab==="calendar"&&y();return}await B()}async function B(){e.calLoading=!0,e.calError="",e.activeTab==="calendar"&&y();try{const t=await ee(e.selectedDept||"",e.calYear,e.calMonth);e.calEvents=t||[]}catch(t){e.calError=String(t),e.calEvents=[]}finally{e.calLoading=!1,e.activeTab==="calendar"&&y()}}r();Pe();H();
+`)[0].trim();Z(i.bankAccountID,i.inv.id,i.amount,i.date,i.inv.invNumber||"",s).then(()=>{e.cashPaymentLoading=!1,e.cashPaymentModal=null,e.cashPaymentError="",z(!0)}).catch(d=>{e.cashPaymentLoading=!1,e.cashPaymentError=String(d),r()})})}function q(){document.querySelectorAll("[data-tab]").forEach(l=>{l.addEventListener("click",()=>{e.activeTab=l.dataset.tab,e.activeTab==="settings"&&!e.settings&&H(),e.activeTab==="overview"&&!e.overview&&!e.overviewLoading&&Te(),e.activeTab==="calendar"&&!e.calLoading&&Fe(),e.activeTab==="finance"&&!e.financeOverview&&!e.financeOverviewLoading&&O(),r()})});const t=document.getElementById("dept-select");t&&t.addEventListener("change",()=>{e.selectedDept=t.value,e.members=[],e.error="",e.financeAccounts=[],e.financeBookings=[],e.financeSelectedAccountID=0,e.financeInvoices=[],e.financeOverview=null,e.expandedInvoiceID=null,e.invoiceItems={},e.invoiceItemsLoading={},r(),P(!1),e.calCalendars.length>0&&B()});const n=document.getElementById("search-input");n&&(n.addEventListener("input",l=>{e.search=l.target.value,y()}),n.focus(),n.setSelectionRange(n.value.length,n.value.length));const a=document.getElementById("finance-search-input");a&&(a.addEventListener("input",l=>{e.financeBookingSearch=l.target.value,y()}),a.focus(),a.setSelectionRange(a.value.length,a.value.length));const o=document.getElementById("invoice-search-input");o&&(o.addEventListener("input",l=>{e.financeInvoiceSearch=l.target.value,y()}),o.focus(),o.setSelectionRange(o.value.length,o.value.length));const c=document.getElementById("reload-btn");c&&c.addEventListener("click",()=>P(!0));const i=document.getElementById("excel-export-btn");i&&i.addEventListener("click",De);const s=document.getElementById("export-pubkey-btn");s&&s.addEventListener("click",Ae);const d=document.getElementById("font-size-slider");d&&d.addEventListener("input",l=>{const h=parseInt(l.target.value,10);D(h);const E=document.getElementById("font-size-label");E&&(E.textContent=h+"px")}),document.querySelectorAll(".font-size-btn").forEach(l=>{l.addEventListener("click",()=>{const h=parseInt(l.dataset.delta,10),E=T(),S=Math.min(G,Math.max(K,E+h));D(S),d&&(d.value=S);const A=document.getElementById("font-size-label");A&&(A.textContent=S+"px")})});const p=document.getElementById("font-size-reset");p&&p.addEventListener("click",()=>{D(C),d&&(d.value=C);const l=document.getElementById("font-size-label");l&&(l.textContent=C+"px")});const g=document.getElementById("col-toggle-btn");g&&g.addEventListener("click",l=>{l.stopPropagation(),e.colMenuOpen=!e.colMenuOpen,y()}),document.querySelectorAll("[data-col]").forEach(l=>{l.addEventListener("change",h=>{e.columns[parseInt(h.target.dataset.col)].visible=h.target.checked,y()})}),document.querySelectorAll("th[data-sort]").forEach(l=>{l.addEventListener("click",()=>{const h=l.dataset.sort;e.sortDir=e.sortCol===h&&e.sortDir==="asc"?"desc":"asc",e.sortCol=h,y()})}),document.querySelectorAll("[data-copy]").forEach(l=>{l.addEventListener("click",()=>{navigator.clipboard.writeText(l.dataset.copy).catch(()=>{});const h=l.textContent;l.textContent="Kopiert!",setTimeout(()=>{l.textContent=h},1500)})}),document.querySelectorAll(".overview-toggle").forEach(l=>{l.addEventListener("click",()=>{const h=l.dataset.dept;e.overviewExpanded[h]=e.overviewExpanded[h]===!1,y()})});const v=document.getElementById("reload-config-btn");v&&v.addEventListener("click",Oe);const f=document.getElementById("cal-prev");f&&f.addEventListener("click",()=>{e.calMonth--,e.calMonth<1&&(e.calMonth=12,e.calYear--),B()});const w=document.getElementById("cal-next");w&&w.addEventListener("click",()=>{e.calMonth++,e.calMonth>12&&(e.calMonth=1,e.calYear++),B()});const m=document.getElementById("cal-today");m&&m.addEventListener("click",()=>{const l=new Date;e.calYear=l.getFullYear(),e.calMonth=l.getMonth()+1,B()});const $=document.getElementById("cal-reload");$&&$.addEventListener("click",()=>B());const x=document.getElementById("cal-view-month");x&&x.addEventListener("click",()=>{e.calView="month",y()});const I=document.getElementById("cal-view-list");I&&I.addEventListener("click",()=>{e.calView="list",y()}),document.querySelectorAll(".cal-filter-cb").forEach(l=>{l.addEventListener("change",h=>{const E=parseInt(h.target.dataset.calid);e.calEnabled[E]=h.target.checked,y()})}),e.colMenuOpen&&setTimeout(()=>{document.addEventListener("click",l=>{l.target.closest(".col-toggle")||(e.colMenuOpen=!1,y())},{once:!0})},0)}function y(){const t=document.getElementById("content");t&&(t.innerHTML=j()),q()}async function De(){if(!!e.selectedDept)try{if(await W(e.selectedDept)){const n=document.getElementById("excel-export-btn");if(n){const a=n.innerHTML;n.textContent="Gespeichert!",setTimeout(()=>{n.innerHTML=a},2e3)}}}catch(t){alert("Excel-Export fehlgeschlagen: "+String(t))}}async function Ae(){try{if(await J()){const n=document.getElementById("export-pubkey-btn");if(n){const a=n.textContent;n.textContent="Gespeichert!",setTimeout(()=>{n.textContent=a},2e3)}}}catch(t){alert("Fehler beim Speichern des Public Keys: "+String(t))}}async function Pe(){try{const t=await R();e.departments=t||[],e.departments.length>0&&!e.selectedDept&&(e.selectedDept=e.departments[0]),r(),e.selectedDept&&P(!1)}catch(t){e.error=String(t),r()}}async function P(t){if(!!e.selectedDept){e.loading=!0,e.error="",r();try{const n=await(t?re:se)(e.selectedDept);e.members=n||[]}catch(n){e.error=String(n),e.members=[]}finally{e.loading=!1,r()}}}async function Te(){e.overviewLoading=!0,e.overviewError="",e.activeTab==="overview"&&y();try{e.overview=await ne()}catch(t){e.overviewError=String(t)}finally{e.overviewLoading=!1,e.activeTab==="overview"&&y()}}function _(t){t&&t.activeModules&&t.activeModules.length>0?e.activeModules=t.activeModules:e.activeModules=null;const n=["overview","members","finance","calendar"];n.includes(e.activeTab)&&!M(e.activeTab)&&(e.activeTab=n.find(a=>M(a))||"settings")}async function H(){try{e.settings=await oe(),_(e.settings),r()}catch(t){e.settings={configError:String(t),publicKey:"",baseURL:"",tokenMasked:"",configURL:""},e.activeTab==="settings"&&y()}}async function Oe(){e.configLoading=!0,e.settings=null,e.overview=null,y();try{e.settings=await le(),_(e.settings);const t=await R();e.departments=t||[],e.departments.length>0&&!e.departments.includes(e.selectedDept)&&(e.selectedDept=e.departments[0],e.members=[])}catch(t){e.settings={configError:String(t),publicKey:"",baseURL:"",tokenMasked:"",configURL:""}}finally{e.configLoading=!1,r()}}async function Fe(){if(e.calCalendars.length===0)try{const t=await te();e.calCalendars=t||[];for(const n of e.calCalendars)n.id in e.calEnabled||(e.calEnabled[n.id]=!0);-1 in e.calEnabled||(e.calEnabled[-1]=!0)}catch(t){e.calError=String(t),e.calLoading=!1,e.activeTab==="calendar"&&y();return}await B()}async function B(){e.calLoading=!0,e.calError="",e.activeTab==="calendar"&&y();try{const t=await ee(e.selectedDept||"",e.calYear,e.calMonth);e.calEvents=t||[]}catch(t){e.calError=String(t),e.calEvents=[]}finally{e.calLoading=!1,e.activeTab==="calendar"&&y()}}r();Pe();H();
