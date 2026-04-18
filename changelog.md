@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.16] - 2026-04-18
+
+### Geändert
+- Finanz-Modul: CSS-Spezifität für `.col-receiver`/`.col-desc` korrigiert, sodass `white-space: normal` greift und Text in Empfänger-/Beschreibungsspalten umbricht
+
 ## [0.91.15] - 2026-04-18
 
 ### Geändert
