@@ -46,13 +46,13 @@
     flex-shrink: 0;
 }
 
-.logo-name  { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.01em; }
-.logo-sub   { font-size: 10px; color: var(--sidebar-muted); margin-top: 1px; }
+.logo-name  { font-size: 0.93rem; font-weight: 600; color: #fff; letter-spacing: 0.01em; }
+.logo-sub   { font-size: 0.71rem; color: var(--sidebar-muted); margin-top: 1px; }
 
 .nav-section { padding: 14px 8px 4px; }
 
 .nav-label {
-    font-size: 9px; font-weight: 600;
+    font-size: 0.64rem; font-weight: 600;
     color: var(--sidebar-muted);
     letter-spacing: 0.08em;
     padding: 0 8px; margin-bottom: 6px;
@@ -64,7 +64,7 @@
     padding: 8px 10px; border-radius: 6px;
     cursor: pointer;
     color: var(--sidebar-text);
-    font-size: 13px; margin-bottom: 2px;
+    font-size: 0.93rem; margin-bottom: 2px;
     transition: background 0.12s;
     user-select: none;
 }
@@ -87,13 +87,13 @@
 
 .dept-selector {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 0.79rem;
     color: var(--sidebar-muted);
 }
 
 .dept-selector label {
     display: block;
-    font-size: 9px; font-weight: 600;
+    font-size: 0.64rem; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.08em;
     margin-bottom: 6px;
 }
@@ -105,7 +105,7 @@
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 6px;
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 0.86rem;
     cursor: pointer;
 }
 
@@ -117,7 +117,7 @@
     padding: 7px 12px;
     background: rgba(245,196,0,0.12);
     border-radius: 6px;
-    font-size: 11px; color: var(--accent);
+    font-size: 0.79rem; color: var(--accent);
     margin-top: 8px;
 }
 
@@ -149,7 +149,7 @@
     flex-shrink: 0;
 }
 
-.topbar-title { font-size: 15px; font-weight: 600; color: #111; }
+.topbar-title { font-size: 1.07rem; font-weight: 600; color: #111; }
 .topbar-spacer { flex: 1; }
 
 .search-wrap {
@@ -163,7 +163,7 @@
 
 .search-wrap input {
     background: none; border: none; outline: none;
-    font-size: 13px; color: #111; width: 100%;
+    font-size: 0.93rem; color: #111; width: 100%;
 }
 
 .search-wrap input::placeholder { color: #aaa; }
@@ -205,6 +205,7 @@
 .table-scroll {
     flex: 1;
     overflow: auto;
+    overflow-x: auto;
 }
 
 /* ── Cards ─────────────────────────────────────────────────────────────────── */
@@ -222,15 +223,15 @@
     display: flex; align-items: center; justify-content: space-between;
 }
 
-.card-title  { font-size: 12px; font-weight: 600; color: #fff; letter-spacing: 0.02em; }
-.card-action { font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 500; }
+.card-title  { font-size: 0.86rem; font-weight: 600; color: #fff; letter-spacing: 0.02em; }
+.card-action { font-size: 0.79rem; color: var(--accent); cursor: pointer; font-weight: 500; }
 
 /* ── Table ─────────────────────────────────────────────────────────────────── */
 .data-table { width: 100%; border-collapse: collapse; }
 
 .data-table th {
     text-align: left;
-    font-size: 10px; font-weight: 600;
+    font-size: 0.71rem; font-weight: 600;
     color: #888; text-transform: uppercase; letter-spacing: 0.05em;
     padding: 7px 14px;
     border-bottom: 0.5px solid rgba(0,0,0,0.08);
@@ -246,12 +247,9 @@
 
 .data-table td {
     padding: 8px 14px;
-    font-size: 12px; color: #111;
+    font-size: 0.86rem; color: #111;
     border-bottom: 0.5px solid rgba(0,0,0,0.06);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 220px;
 }
 
 .data-table tr:last-child td { border-bottom: none; }
@@ -268,7 +266,7 @@
 }
 .invoice-detail-loading {
     padding: 10px 16px 10px 36px;
-    font-size: 13px;
+    font-size: 0.93rem;
     color: #555;
 }
 .invoice-items-panel {
@@ -286,12 +284,12 @@
     align-items: baseline;
     padding: 5px 12px 5px 12px;
     border-bottom: 1px solid #f0f0f0;
-    font-size: 13px;
+    font-size: 0.93rem;
 }
 .invoice-item-row:last-child { border-bottom: none; }
 .invoice-item-title { color: #222; }
-.invoice-item-desc { color: #888; font-size: 12px; margin-top: 2px; }
-.invoice-item-qty { color: #666; white-space: nowrap; font-size: 12px; }
+.invoice-item-desc { color: #888; font-size: 0.86rem; margin-top: 2px; }
+.invoice-item-qty { color: #666; white-space: nowrap; font-size: 0.86rem; }
 .invoice-item-tax { color: #aaa; margin-left: 4px; }
 .invoice-item-total {
     text-align: right;
@@ -331,7 +329,7 @@
     gap: 8px;
     padding: 4px 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.86rem;
     color: #444;
     border-radius: 4px;
 }
@@ -339,7 +337,7 @@
 .col-toggle-menu label:hover { background: #fffbea; }
 .col-toggle-menu input[type=checkbox] { accent-color: var(--accent-dark); }
 
-.status-count { font-size: 11px; color: #888; margin-left: auto; }
+.status-count { font-size: 0.79rem; color: #888; margin-left: auto; }
 
 /* ── Stat cards ────────────────────────────────────────────────────────────── */
 .stat-row {
@@ -357,13 +355,13 @@
 }
 
 .stat-label {
-    font-size: 10px; font-weight: 600;
+    font-size: 0.71rem; font-weight: 600;
     color: #888; text-transform: uppercase;
     letter-spacing: 0.05em; margin-bottom: 5px;
 }
 
-.stat-value { font-size: 22px; font-weight: 700; color: #111; }
-.stat-sub   { font-size: 11px; color: #888; margin-top: 3px; }
+.stat-value { font-size: 1.57rem; font-weight: 700; color: #111; }
+.stat-sub   { font-size: 0.79rem; color: #888; margin-top: 3px; }
 .stat-dot   { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
 .dot-green  { background: #16a34a; }
 .dot-amber  { background: #d97706; }
@@ -387,18 +385,18 @@
 
 .event-item:last-child { border-bottom: none; }
 .event-date { width: 34px; text-align: center; flex-shrink: 0; }
-.event-day  { font-size: 15px; font-weight: 700; color: #111; }
-.event-mon  { font-size: 9px; font-weight: 600; color: #888; letter-spacing: 0.04em; }
+.event-day  { font-size: 1.07rem; font-weight: 700; color: #111; }
+.event-mon  { font-size: 0.64rem; font-weight: 600; color: #888; letter-spacing: 0.04em; }
 .event-dot  { width: 3px; align-self: stretch; background: var(--accent); border-radius: 2px; flex-shrink: 0; margin-top: 3px; }
 .event-info { flex: 1; }
-.event-name { font-size: 12px; font-weight: 600; color: #111; }
-.event-meta { font-size: 11px; color: #888; margin-top: 1px; }
+.event-name { font-size: 0.86rem; font-weight: 600; color: #111; }
+.event-meta { font-size: 0.79rem; color: #888; margin-top: 1px; }
 
 /* ── Badges ────────────────────────────────────────────────────────────────── */
 .badge {
     display: inline-block;
     padding: 2px 7px; border-radius: 4px;
-    font-size: 10px; font-weight: 600; letter-spacing: 0.03em;
+    font-size: 0.71rem; font-weight: 600; letter-spacing: 0.03em;
 }
 
 .badge-green  { background: #dcfce7; color: #15803d; }
@@ -410,7 +408,7 @@
 .btn-primary {
     background: var(--accent); color: var(--accent-text);
     border: none; padding: 6px 14px;
-    border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;
+    border-radius: 6px; font-size: 0.86rem; font-weight: 700; cursor: pointer;
     transition: background 0.12s;
     display: inline-flex; align-items: center; gap: 6px;
 }
@@ -421,7 +419,7 @@
 .btn-ghost {
     background: none; color: #555;
     border: 0.5px solid rgba(0,0,0,0.15);
-    padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    padding: 5px 12px; border-radius: 6px; font-size: 0.86rem; cursor: pointer;
     transition: background 0.12s;
     display: inline-flex; align-items: center; gap: 6px;
 }
@@ -440,7 +438,7 @@
 .settings-field { display: flex; flex-direction: column; gap: 5px; }
 
 .settings-field label {
-    font-size: 10px; font-weight: 600;
+    font-size: 0.71rem; font-weight: 600;
     color: #888; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
@@ -450,7 +448,7 @@
     border: 0.5px solid rgba(0,0,0,0.15);
     border-radius: 6px;
     padding: 6px 10px;
-    font-size: 12px; font-family: monospace;
+    font-size: 0.86rem; font-family: monospace;
     color: #333;
     word-break: break-all;
 }
@@ -461,7 +459,7 @@
     background: rgba(0,0,0,0.06);
     border: none; border-radius: 4px;
     color: #555; padding: 2px 8px;
-    cursor: pointer; font-size: 11px; flex-shrink: 0;
+    cursor: pointer; font-size: 0.79rem; flex-shrink: 0;
 }
 
 .copy-btn:hover { background: var(--accent); color: var(--accent-text); }
@@ -472,7 +470,7 @@
     border-radius: 6px;
     padding: 10px 14px;
     color: #dc2626;
-    font-size: 12px;
+    font-size: 0.86rem;
 }
 
 /* ── Placeholder / empty ───────────────────────────────────────────────────── */
@@ -480,7 +478,7 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     flex: 1; gap: 10px;
-    color: #999; font-size: 13px;
+    color: #999; font-size: 0.93rem;
     padding: 40px 0;
 }
 
@@ -498,7 +496,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Error message ─────────────────────────────────────────────────────────── */
-.err-msg { color: #dc2626; font-size: 12px; margin-left: auto; }
+.err-msg { color: #dc2626; font-size: 0.86rem; margin-left: auto; }
 
 /* ── Calendar ──────────────────────────────────────────────────────────────── */
 .cal-wrapper {
@@ -529,7 +527,7 @@
 }
 
 .cal-sidebar-title {
-    font-size: 11px;
+    font-size: 0.79rem;
     font-weight: 700;
     color: #888;
     text-transform: uppercase;
@@ -547,7 +545,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 12px;
+    font-size: 0.86rem;
     color: #333;
     cursor: pointer;
     user-select: none;
@@ -581,7 +579,7 @@
 }
 
 .cal-month-title {
-    font-size: 16px;
+    font-size: 1.14rem;
     font-weight: 700;
     color: #222;
     min-width: 160px;
@@ -589,7 +587,7 @@
 }
 
 .cal-nav {
-    font-size: 20px;
+    font-size: 1.43rem;
     line-height: 1;
     padding: 2px 8px;
 }
@@ -603,7 +601,7 @@
 }
 
 .cal-weekday {
-    font-size: 11px;
+    font-size: 0.79rem;
     font-weight: 700;
     color: #888;
     text-align: center;
@@ -635,7 +633,7 @@
 }
 
 .cal-day-num {
-    font-size: 11px;
+    font-size: 0.79rem;
     font-weight: 600;
     color: #555;
     line-height: 1;
@@ -654,7 +652,7 @@
 }
 
 .cal-pill {
-    font-size: 10px;
+    font-size: 0.71rem;
     font-weight: 500;
     color: #fff;
     border-radius: 3px;
@@ -668,7 +666,7 @@
 .cal-pill--more {
     background: #ccc !important;
     color: #555;
-    font-size: 9px;
+    font-size: 0.64rem;
 }
 
 /* View toggle */
@@ -731,7 +729,7 @@
 }
 
 .cal-list-weekday {
-    font-size: 10px;
+    font-size: 0.71rem;
     font-weight: 600;
     color: #aaa;
     text-transform: uppercase;
@@ -740,7 +738,7 @@
 }
 
 .cal-list-daynum {
-    font-size: 20px;
+    font-size: 1.43rem;
     font-weight: 700;
     color: #333;
     line-height: 1.2;
@@ -780,7 +778,7 @@
 }
 
 .cal-list-name {
-    font-size: 13px;
+    font-size: 0.93rem;
     font-weight: 500;
     color: #1a1a1a;
     white-space: nowrap;
@@ -789,7 +787,7 @@
 }
 
 .cal-list-meta {
-    font-size: 11px;
+    font-size: 0.79rem;
     color: #888;
 }
 
@@ -799,7 +797,7 @@
 }
 
 .cal-list-badge--birthday {
-    font-size: 12px;
+    font-size: 0.86rem;
 }
 
 /* Sub-tab bar (used in Finance module) */
@@ -816,7 +814,7 @@
     border: none;
     background: none;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 0.93rem;
     font-weight: 500;
     color: #666;
     border-bottom: 2px solid transparent;
@@ -837,14 +835,14 @@
 /* ── Finance bookings ──────────────────────────────────────────────────────── */
 .amount-pos { color: #16a34a; font-weight: 500; }
 .amount-neg { color: #dc2626; font-weight: 500; }
-.error-msg { color: #dc2626; padding: 16px; font-size: 13px; }
+.error-msg { color: #dc2626; padding: 16px; font-size: 0.93rem; }
 
 /* ── Cash payment button ───────────────────────────────────────────────────── */
 .btn-cash-pay {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1rem;
     padding: 2px 4px;
     margin-left: 6px;
     border-radius: 4px;
@@ -883,11 +881,11 @@
     border-bottom: 1px solid #eee;
     background: #fafafa;
 }
-.modal-title { font-size: 15px; font-weight: 600; color: #111; }
+.modal-title { font-size: 1.07rem; font-weight: 600; color: #111; }
 .modal-close {
     background: none;
     border: none;
-    font-size: 16px;
+    font-size: 1.14rem;
     color: #888;
     cursor: pointer;
     padding: 2px 6px;
@@ -905,12 +903,12 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 13px;
+    font-size: 0.93rem;
     color: #333;
 }
 .modal-invoice-info code {
     font-family: monospace;
-    font-size: 12px;
+    font-size: 0.86rem;
     background: #ece9e0;
     padding: 1px 5px;
     border-radius: 3px;
@@ -921,7 +919,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-    font-size: 13px;
+    font-size: 0.93rem;
     font-weight: 500;
     color: #555;
 }
@@ -929,7 +927,7 @@
     padding: 7px 10px;
     border: 1px solid #d0ccc0;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 1rem;
     background: #fff;
     color: #111;
     outline: none;
@@ -941,7 +939,7 @@
     border: 1px solid #fecaca;
     border-radius: 6px;
     padding: 8px 12px;
-    font-size: 13px;
+    font-size: 0.93rem;
     color: #dc2626;
 }
 .modal-footer {
@@ -955,7 +953,7 @@
 
 /* ── Modal confirm view ────────────────────────────────────────────────────── */
 .modal-confirm-intro {
-    font-size: 13px;
+    font-size: 0.93rem;
     color: #666;
     margin-bottom: 4px;
 }
@@ -966,7 +964,7 @@
     border: 1px solid #e8e4d8;
     border-radius: 8px;
     overflow: hidden;
-    font-size: 14px;
+    font-size: 1rem;
 }
 .modal-confirm-row {
     display: flex;
@@ -978,7 +976,7 @@
 .modal-confirm-row:last-child { border-bottom: none; }
 .modal-confirm-row .modal-label {
     min-width: 100px;
-    font-size: 12px;
+    font-size: 0.86rem;
     color: #888;
     flex-shrink: 0;
 }

@@ -2,6 +2,23 @@ import './style.css';
 import './app.css';
 import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents, ExportPublicKey, ExportMembersExcel, GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
 
+// ── Font size ──────────────────────────────────────────────────────────────────
+const FONT_SIZE_KEY = 'fcs-font-size';
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 22;
+const FONT_SIZE_DEFAULT = 14;
+
+function getFontSize() {
+    return parseInt(localStorage.getItem(FONT_SIZE_KEY) || FONT_SIZE_DEFAULT, 10);
+}
+
+function applyFontSize(size) {
+    document.documentElement.style.setProperty('--font-size-base', size + 'px');
+    localStorage.setItem(FONT_SIZE_KEY, size);
+}
+
+applyFontSize(getFontSize());
+
 // ── Icons (inline SVG) ─────────────────────────────────────────────────────────
 const ICONS = {
     overview: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
@@ -324,7 +341,7 @@ function renderOverview() {
             <div class="card-header overview-toggle" data-dept="${esc(dept.name)}" style="cursor:pointer">
                 <span class="card-title">${esc(dept.name)}</span>
                 <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:11px;color:#aaa">${dept.groups.length} Gruppe${dept.groups.length !== 1 ? 'n' : ''}</span>
+                    <span style="font-size:0.79rem;color:#aaa">${dept.groups.length} Gruppe${dept.groups.length !== 1 ? 'n' : ''}</span>
                     <span style="color:#aaa;display:flex;align-items:center">${chevron}</span>
                 </div>
             </div>
@@ -340,7 +357,7 @@ function renderOverview() {
                     ${dept.groups.map(g => g.notFound
                         ? `<tr>
                             <td><span class="badge badge-amber">${esc(g.short)}</span></td>
-                            <td colspan="3" style="color:#d97706;font-size:11px">Gruppe nicht in easyVerein gefunden</td>
+                            <td colspan="3" style="color:#d97706;font-size:0.79rem">Gruppe nicht in easyVerein gefunden</td>
                         </tr>`
                         : `<tr>
                             <td><span class="badge badge-yellow">${esc(g.short)}</span></td>
@@ -460,12 +477,14 @@ function renderFinanceAccounts() {
             : '';
 
         bookingsSection = `
+            <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
                     <th>Datum</th><th>Empfänger</th><th>Beschreibung</th><th style="text-align:right">Betrag</th>
                 </tr></thead>
                 <tbody>${rows}${empty}</tbody>
-            </table>`;
+            </table>
+            </div>`;
     }
 
     return `
@@ -477,14 +496,14 @@ function renderFinanceAccounts() {
                 </select>
             </div>
             <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:12px">Kontostand</span><br><strong style="font-size:16px">${balanceFormatted}</strong></div>
-                ${selAcc.iban ? `<div style="margin-left:16px"><span style="color:#888;font-size:12px">IBAN</span><br><span style="font-family:monospace;font-size:13px">${selAcc.iban}</span></div>` : ''}
+                <div><span style="color:#888;font-size:0.86rem">Kontostand</span><br><strong style="font-size:1.14rem">${balanceFormatted}</strong></div>
+                ${selAcc.iban ? `<div style="margin-left:16px"><span style="color:#888;font-size:0.86rem">IBAN</span><br><span style="font-family:monospace;font-size:0.93rem">${selAcc.iban}</span></div>` : ''}
             </div>
             <div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <label style="font-size:12px;color:#666">Von</label>
+                <label style="font-size:0.86rem;color:#666">Von</label>
                 <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateFrom}"
                     onchange="setFinanceDateFrom(this.value)">
-                <label style="font-size:12px;color:#666">Bis</label>
+                <label style="font-size:0.86rem;color:#666">Bis</label>
                 <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateTo}"
                     onchange="setFinanceDateTo(this.value)">
                 <button class="btn-primary" onclick="loadFinanceBookings()">Laden</button>
@@ -595,9 +614,9 @@ function renderFinanceInvoices() {
                 <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
             </div>
             <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:12px">Offener Gesamtbetrag</span><br>
-                    <strong class="amount-neg" style="font-size:16px">${totalOpenFmt}</strong>
-                    <span style="color:#888;font-size:12px;margin-left:6px">(${filtered.length} Rechnung${filtered.length !== 1 ? 'en' : ''})</span>
+                <div><span style="color:#888;font-size:0.86rem">Offener Gesamtbetrag</span><br>
+                    <strong class="amount-neg" style="font-size:1.14rem">${totalOpenFmt}</strong>
+                    <span style="color:#888;font-size:0.86rem;margin-left:6px">(${filtered.length} Rechnung${filtered.length !== 1 ? 'en' : ''})</span>
                 </div>
                 <div style="margin-left:auto">
                     <input id="invoice-search-input" type="text" class="search-input"
@@ -605,6 +624,7 @@ function renderFinanceInvoices() {
                         style="width:240px" value="${escHtml(state.financeInvoiceSearch || '')}">
                 </div>
             </div>
+            <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
                     <th>Nr.</th><th>Datum</th><th>Empfänger</th><th>Beschreibung</th>
@@ -612,6 +632,7 @@ function renderFinanceInvoices() {
                 </tr></thead>
                 <tbody>${rows}${empty}</tbody>
             </table>
+            </div>
         </div>
     `;
 }
@@ -819,9 +840,9 @@ function renderCalendar() {
             <button class="btn-ghost cal-nav" id="cal-prev">&#8249;</button>
             <span class="cal-month-title">${MONTH_NAMES[month-1]} ${year}</span>
             <button class="btn-ghost cal-nav" id="cal-next">&#8250;</button>
-            <button class="btn-ghost" id="cal-today" style="margin-left:8px;font-size:12px">Heute</button>
+            <button class="btn-ghost" id="cal-today" style="margin-left:8px;font-size:0.86rem">Heute</button>
             ${viewToggle}
-            <button class="btn-ghost" id="cal-reload" style="margin-left:auto;font-size:12px">Neu laden</button>
+            <button class="btn-ghost" id="cal-reload" style="margin-left:auto;font-size:0.86rem">Neu laden</button>
         </div>`;
 
     const mainContent = isMonth ? renderCalendarMonth(visibleEvents, year, month) : renderCalendarList(visibleEvents);
@@ -830,7 +851,7 @@ function renderCalendar() {
         <div class="cal-layout">
             <div class="cal-sidebar">
                 <div class="cal-sidebar-title">Kalender</div>
-                <div class="cal-filters">${calFilterHtml || '<span style="color:#aaa;font-size:12px">Keine Kalender</span>'}</div>
+                <div class="cal-filters">${calFilterHtml || '<span style="color:#aaa;font-size:0.86rem">Keine Kalender</span>'}</div>
             </div>
             <div class="cal-main">
                 ${header}
@@ -955,9 +976,29 @@ function renderSettings() {
     if (!s && loading) return '<div class="placeholder"><span class="spinner"></span></div>';
     if (!s) return '<div class="placeholder">Einstellungen werden geladen…</div>';
 
+    const curFontSize = getFontSize();
+
     return `
         <div class="settings-grid">
             ${s.configError ? `<div class="error-box">${esc(s.configError)}</div>` : ''}
+
+            <div class="card">
+                <div class="card-header"><span class="card-title">Darstellung</span></div>
+                <div style="padding:16px">
+                    <div class="settings-field">
+                        <label>Schriftgröße</label>
+                        <div class="settings-value" style="gap:10px;align-items:center">
+                            <button class="btn-ghost font-size-btn" data-delta="-1" style="font-size:1.14rem;padding:2px 10px;line-height:1" title="Kleiner">A−</button>
+                            <input type="range" id="font-size-slider"
+                                min="${FONT_SIZE_MIN}" max="${FONT_SIZE_MAX}" value="${curFontSize}"
+                                style="width:120px;cursor:pointer">
+                            <button class="btn-ghost font-size-btn" data-delta="1" style="font-size:1.29rem;padding:2px 10px;line-height:1" title="Größer">A+</button>
+                            <span id="font-size-label" style="min-width:32px;text-align:right;font-weight:600">${curFontSize}px</span>
+                            <button class="btn-ghost" id="font-size-reset" style="font-size:0.79rem;padding:3px 8px">Zurücksetzen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="card">
                 <div class="card-header"><span class="card-title">Version</span></div>
@@ -977,7 +1018,7 @@ function renderSettings() {
                         <div class="settings-value">
                             <span>${esc(s.publicKey || '—')}</span>
                             ${s.publicKey ? `<button class="copy-btn" data-copy="${esc(s.publicKey)}">Kopieren</button>` : ''}
-                            ${s.publicKey ? `<button class="btn-ghost" id="export-pubkey-btn" style="font-size:11px;padding:3px 8px">Als Datei speichern</button>` : ''}
+                            ${s.publicKey ? `<button class="btn-ghost" id="export-pubkey-btn" style="font-size:0.79rem;padding:3px 8px">Als Datei speichern</button>` : ''}
                         </div>
                     </div>
                     <div class="settings-field">
@@ -1253,6 +1294,37 @@ function attachListeners() {
     // Export public key as file
     const exportPubKeyBtn = document.getElementById('export-pubkey-btn');
     if (exportPubKeyBtn) exportPubKeyBtn.addEventListener('click', doExportPublicKey);
+
+    // Font size controls
+    const fontSlider = document.getElementById('font-size-slider');
+    if (fontSlider) {
+        fontSlider.addEventListener('input', e => {
+            const size = parseInt(e.target.value, 10);
+            applyFontSize(size);
+            const lbl = document.getElementById('font-size-label');
+            if (lbl) lbl.textContent = size + 'px';
+        });
+    }
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const delta = parseInt(btn.dataset.delta, 10);
+            const cur = getFontSize();
+            const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, cur + delta));
+            applyFontSize(next);
+            if (fontSlider) fontSlider.value = next;
+            const lbl = document.getElementById('font-size-label');
+            if (lbl) lbl.textContent = next + 'px';
+        });
+    });
+    const fontReset = document.getElementById('font-size-reset');
+    if (fontReset) {
+        fontReset.addEventListener('click', () => {
+            applyFontSize(FONT_SIZE_DEFAULT);
+            if (fontSlider) fontSlider.value = FONT_SIZE_DEFAULT;
+            const lbl = document.getElementById('font-size-label');
+            if (lbl) lbl.textContent = FONT_SIZE_DEFAULT + 'px';
+        });
+    }
 
     // Column toggle
     const colBtn = document.getElementById('col-toggle-btn');

@@ -4,6 +4,19 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.14] - 2026-04-18
+
+### Neu
+- Einstellungen: Schriftgröße anpassbar (12–22px, Standard 14px) über Schieberegler und A−/A+-Buttons mit Reset; Wert wird in `localStorage` gespeichert
+- Alle Schriftgrößen in `app.css` und Inline-Styles auf `rem`-Einheiten umgestellt, damit die Skalierung systemweit greift
+- Buchungs- und Rechnungstabellen im Finanz-Modul können horizontal scrollen
+
+## [0.91.13] - 2026-04-18
+
+### Neu
+- Einstellungen: Schriftgröße-Einstellung hinzugefügt (unvollständig — Skalierung griff noch nicht)
+- Tabellen mit horizontalem Scroll: `.table-scroll` explizit mit `overflow-x: auto`
+
 ## [0.91.12] - 2026-04-17
 
 ### Geändert
