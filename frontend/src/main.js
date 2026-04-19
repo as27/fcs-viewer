@@ -1,161 +1,16 @@
 import './style.css';
 import './app.css';
-import { GetSettings, GetDepartments, GetMembers, ReloadMembers, ReloadConfig, GetDepartmentOverview, GetCalendars, GetCalendarEvents, ExportPublicKey, ExportMembersExcel, GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
+import { GetDepartments, GetMembers } from '../wailsjs/go/main/App';
 
-// ── Font size ──────────────────────────────────────────────────────────────────
-const FONT_SIZE_KEY = 'fcs-font-size';
-const FONT_SIZE_MIN = 12;
-const FONT_SIZE_MAX = 22;
-const FONT_SIZE_DEFAULT = 14;
-
-function getFontSize() {
-    return parseInt(localStorage.getItem(FONT_SIZE_KEY) || FONT_SIZE_DEFAULT, 10);
-}
-
-function applyFontSize(size) {
-    document.documentElement.style.setProperty('--font-size-base', size + 'px');
-    localStorage.setItem(FONT_SIZE_KEY, size);
-}
+import { state, PAGE_TITLES } from './state.js';
+import { esc, ICONS, getFontSize, applyFontSize, FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT } from './utils.js';
+import { renderMembers, loadMembers, doExportExcel, init as initMembers } from './members.js';
+import { renderOverview, loadOverview, init as initOverview } from './overview.js';
+import { renderCalendar, loadCalendarData, loadCalendarEvents, init as initCalendar } from './calendar.js';
+import { renderFinance, renderCashPaymentModal, attachCashPaymentListeners, loadFinanceOverview, loadFinanceAccounts, init as initFinance } from './finance.js';
+import { renderSettings, isModuleActive, loadSettings, doReloadConfig, doExportPublicKey, applyActiveModules, init as initSettings } from './settings.js';
 
 applyFontSize(getFontSize());
-
-// ── Icons (inline SVG) ─────────────────────────────────────────────────────────
-const ICONS = {
-    overview: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-        <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".8"/>
-        <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/>
-        <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/>
-        <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".8"/>
-    </svg>`,
-    members: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-        <circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M1 14c0-3 2.2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.2"/>
-        <path d="M13 9c1.8.4 3 1.8 3 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-    </svg>`,
-    finance: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-        <rect x="1" y="4" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/>
-        <rect x="3" y="9.5" width="4" height="1.5" rx=".5" fill="currentColor"/>
-    </svg>`,
-    calendar: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-        <rect x="1" y="3" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <rect x="4" y="10" width="2" height="2" rx=".5" fill="currentColor"/>
-        <rect x="7" y="10" width="2" height="2" rx=".5" fill="currentColor" opacity=".5"/>
-        <rect x="10" y="10" width="2" height="2" rx=".5" fill="currentColor" opacity=".5"/>
-    </svg>`,
-    settings: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`,
-    search: `<svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-        <circle cx="7" cy="7" r="5" stroke="#aaa" stroke-width="1.5"/>
-        <path d="M11 11l3 3" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`,
-};
-
-// ── State ──────────────────────────────────────────────────────────────────────
-const state = {
-    activeTab: 'members',
-    activeModules: null, // null = noch nicht geladen (alle sichtbar)
-    departments: [],
-    selectedDept: '',
-    members: [],
-    loading: false,
-    configLoading: false,
-    error: '',
-    overview: null,        // DepartmentDetail[] | null
-    overviewLoading: false,
-    overviewError: '',
-    overviewExpanded: {},  // { [deptName]: bool } – true = aufgeklappt
-    search: '',
-    sortCol: 'familyName',
-    sortDir: 'asc',
-    colMenuOpen: false,
-    settings: null,
-    // Calendar state
-    calYear: new Date().getFullYear(),
-    calMonth: new Date().getMonth() + 1,
-    calEvents: [],         // CalendarEvent[]
-    calCalendars: [],      // CalendarInfo[] from API + birthday pseudo-calendar
-    calEnabled: {},        // { [calendarId]: bool }
-    calLoading: false,
-    calError: '',
-    calView: 'month',      // 'month' | 'list'
-    // Finance state
-    financeTab: 'overview',
-    financeOverview: null,
-    financeOverviewLoading: false,
-    financeOverviewError: '',
-    financeAccounts: [],       // BankAccountInfo[]
-    financeAccountsLoading: false,
-    financeAccountsError: '',
-    financeSelectedAccountID: 0,
-    financeBookings: [],       // BookingRow[]
-    financeBookingsLoading: false,
-    financeBookingsError: '',
-    financeBookingSearch: '',
-    financeBookingDateFrom: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })(),
-    financeBookingDateTo: new Date().toISOString().slice(0,10),
-    // Finance invoices state
-    financeInvoices: [],
-    financeInvoicesLoading: false,
-    financeInvoicesError: '',
-    financeInvoiceSearch: '',
-    expandedInvoiceID: null,
-    invoiceItems: {},        // invoiceID -> []InvoiceItemRow
-    invoiceItemsLoading: {}, // invoiceID -> bool
-    cashPaymentModal: null,  // { inv, bankAccountID, amount, date, confirmed } | null
-    cashPaymentLoading: false,
-    cashPaymentError: '',
-    columns: [
-        { key: 'membershipNumber', label: 'Nr.',           visible: true  },
-        { key: 'familyName',       label: 'Nachname',      visible: true  },
-        { key: 'firstName',        label: 'Vorname',       visible: true  },
-        { key: 'age',              label: 'Alter',         visible: true  },
-        { key: 'dateOfBirth',      label: 'Geburtsdatum',  visible: true  },
-        { key: 'email',            label: 'E-Mail',        visible: true  },
-        { key: 'phone',            label: 'Telefon',       visible: false },
-        { key: 'mobile',           label: 'Mobil',         visible: false },
-        { key: 'street',           label: 'Straße',        visible: false },
-        { key: 'zip',              label: 'PLZ',           visible: false },
-        { key: 'city',             label: 'Stadt',         visible: false },
-        { key: 'joinDate',         label: 'Eintritt',      visible: false },
-        { key: 'resignationDate',  label: 'Austritt',      visible: false },
-        { key: 'groups',           label: 'Gruppen',       visible: true  },
-        { key: 'groupShorts',      label: 'Kürzel',        visible: true  },
-    ],
-};
-
-const PAGE_TITLES = {
-    overview: 'Abteilungen',
-    members:  'Mitglieder',
-    finance:  'Finanzen',
-    calendar: 'Kalender',
-    settings: 'Einstellungen',
-};
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-function esc(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function filterAndSort() {
-    let rows = [...state.members];
-    if (state.search) {
-        const q = state.search.toLowerCase();
-        rows = rows.filter(m => Object.values(m).some(v => String(v ?? '').toLowerCase().includes(q)));
-    }
-    const col = state.sortCol, dir = state.sortDir === 'asc' ? 1 : -1;
-    rows.sort((a, b) => {
-        const av = String(a[col] ?? '').toLowerCase();
-        const bv = String(b[col] ?? '').toLowerCase();
-        return av < bv ? -dir : av > bv ? dir : 0;
-    });
-    return rows;
-}
 
 // ── Render ─────────────────────────────────────────────────────────────────────
 function render() {
@@ -175,10 +30,10 @@ function render() {
     attachCashPaymentListeners();
 }
 
-function isModuleActive(key) {
-    // Wenn keine Liste konfiguriert ist, sind alle Module aktiv.
-    if (!state.activeModules || state.activeModules.length === 0) return true;
-    return state.activeModules.includes(key);
+function refreshContent() {
+    const el = document.getElementById('content');
+    if (el) el.innerHTML = renderContent();
+    attachListeners();
 }
 
 function renderSidebar() {
@@ -261,961 +116,8 @@ function renderContent() {
     }</div>`;
 }
 
-// ── Members ────────────────────────────────────────────────────────────────────
-function renderMembers() {
-    const visibleCols = state.columns.filter(c => c.visible);
-    const rows = filterAndSort();
-
-    const colMenu = state.colMenuOpen ? `
-        <div class="col-toggle-menu">
-            ${state.columns.map((c, i) => `
-                <label>
-                    <input type="checkbox" data-col="${i}" ${c.visible ? 'checked' : ''}>
-                    ${esc(c.label)}
-                </label>`).join('')}
-        </div>` : '';
-
-    const tableHtml = rows.length === 0
-        ? `<div class="placeholder">${state.selectedDept ? 'Keine Mitglieder gefunden.' : 'Bitte eine Abteilung wählen.'}</div>`
-        : `<table class="data-table">
-            <thead><tr>
-                ${visibleCols.map(c => `
-                    <th class="${state.sortCol === c.key ? 'sort-' + state.sortDir : ''}"
-                        data-sort="${c.key}">${esc(c.label)}</th>
-                `).join('')}
-            </tr></thead>
-            <tbody>
-                ${rows.map(m => `<tr>
-                    ${visibleCols.map(c => `<td title="${esc(m[c.key])}"${c.key === 'groups' ? ' style="white-space:normal;min-width:120px;max-width:220px"' : ''}>${esc(m[c.key])}</td>`).join('')}
-                </tr>`).join('')}
-            </tbody>
-        </table>`;
-
-    return `
-        <div class="members-layout">
-            <div class="members-toolbar">
-                <div class="col-toggle">
-                    <button class="btn-ghost" id="col-toggle-btn">Spalten</button>
-                    ${colMenu}
-                </div>
-                <button class="btn-primary" id="reload-btn" ${state.loading ? 'disabled' : ''}>
-                    ${state.loading ? '<span class="spinner"></span> Laden…' : 'Neu laden'}
-                </button>
-                <button class="btn-ghost" id="excel-export-btn" ${state.loading || !state.selectedDept ? 'disabled' : ''} title="Als Excel exportieren">
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="margin-right:4px;vertical-align:-2px">
-                        <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M4 5l3 3-3 3M9 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>Excel
-                </button>
-                ${state.error ? `<span class="err-msg">${esc(state.error)}</span>` : `<span class="status-count">${rows.length} Einträge</span>`}
-            </div>
-            <div class="card">
-                ${state.loading && state.members.length === 0
-                    ? '<div class="placeholder"><span class="spinner"></span></div>'
-                    : `<div class="table-scroll">${tableHtml}</div>`}
-            </div>
-        </div>
-    `;
-}
-
-// ── Department overview ────────────────────────────────────────────────────────
-function renderOverview() {
-    if (state.overviewLoading) {
-        return '<div class="placeholder"><span class="spinner"></span></div>';
-    }
-    if (state.overviewError) {
-        return `<div class="error-box">${esc(state.overviewError)}</div>`;
-    }
-    if (!state.overview) {
-        return '<div class="placeholder">Keine Daten verfügbar.</div>';
-    }
-
-    return state.overview.map(dept => {
-        const expanded = state.overviewExpanded[dept.name] === true; // default: eingeklappt
-        const chevron = expanded
-            ? `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-            : `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
-        return `
-        <div class="card">
-            <div class="card-header overview-toggle" data-dept="${esc(dept.name)}" style="cursor:pointer">
-                <span class="card-title">${esc(dept.name)}</span>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:0.79rem;color:#aaa">${dept.groups.length} Gruppe${dept.groups.length !== 1 ? 'n' : ''}</span>
-                    <span style="color:#aaa;display:flex;align-items:center">${chevron}</span>
-                </div>
-            </div>
-            ${expanded ? `
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Kürzel</th>
-                        <th>Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${dept.groups.map(g => g.notFound
-                        ? `<tr>
-                            <td><span class="badge badge-amber">${esc(g.short)}</span></td>
-                            <td colspan="3" style="color:#d97706;font-size:0.79rem">Gruppe nicht in easyVerein gefunden</td>
-                        </tr>`
-                        : `<tr>
-                            <td><span class="badge badge-yellow">${esc(g.short)}</span></td>
-                            <td style="font-weight:600;white-space:normal">${esc(g.name)}</td>
-                        </tr>`
-                    ).join('')}
-                </tbody>
-            </table>` : ''}
-        </div>`;
-    }).join('');
-}
-
-// ── Finance ────────────────────────────────────────────────────────────────────
-const FINANCE_TABS = ['overview', 'accounts', 'invoices'];
-const FINANCE_TAB_LABELS = { overview: 'Übersicht', accounts: 'Bankkonten', invoices: 'Offene Rechnungen' };
-
-function renderFinance() {
-    const tabs = FINANCE_TABS.map(t => `
-        <button class="sub-tab${state.financeTab === t ? ' active' : ''}"
-            onclick="setFinanceTab('${t}')">${FINANCE_TAB_LABELS[t]}</button>
-    `).join('');
-
-    let content = '';
-    if (state.financeTab === 'overview') content = renderFinanceOverview();
-    else if (state.financeTab === 'accounts') content = renderFinanceAccounts();
-    else if (state.financeTab === 'invoices') content = renderFinanceInvoices();
-
-    return `
-        <div class="sub-tab-bar">${tabs}</div>
-        ${content}
-    `;
-}
-
-function renderFinanceOverview() {
-    const ov = state.financeOverview;
-    const loading = state.financeOverviewLoading;
-
-    const fmt = (v) => v != null ? v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '—';
-
-    const now = new Date();
-    const monthLabel = now.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
-
-    const card = (label, value, sub, cls) => `
-        <div class="stat-card">
-            <div class="stat-label">${label}</div>
-            <div class="stat-value${cls ? ' ' + cls : ''}">${loading ? '<span class="spinner"></span>' : value}</div>
-            <div class="stat-sub">${sub}</div>
-        </div>`;
-
-    const income  = ov ? fmt(ov.incomeMonth)   : '—';
-    const expense = ov ? fmt(Math.abs(ov.expenseMonth)) : '—';
-    const balance = ov ? fmt(ov.balanceMonth)  : '—';
-    const open    = ov ? fmt(ov.openInvoices)  : '—';
-    const invCount = ov ? `${ov.invoiceCount} offene Rechnung${ov.invoiceCount !== 1 ? 'en' : ''}` : 'Noch nicht geladen';
-    const balClass = ov ? (ov.balanceMonth >= 0 ? 'amount-pos' : 'amount-neg') : '';
-
-    return `
-        <div class="stat-row">
-            ${card('Einnahmen ' + monthLabel, income,  'Summe positive Buchungen', 'amount-pos')}
-            ${card('Ausgaben '  + monthLabel, expense, 'Summe negative Buchungen', 'amount-neg')}
-            ${card('Saldo '     + monthLabel, balance, 'Einnahmen – Ausgaben', balClass)}
-            ${card('Offene Posten', open, invCount, 'amount-neg')}
-        </div>
-        ${state.financeOverviewError ? `<div class="error-msg">${state.financeOverviewError}</div>` : ''}
-    `;
-}
-
-function renderFinanceAccounts() {
-    if (state.financeAccountsLoading) {
-        return '<div class="placeholder"><span class="spinner"></span></div>';
-    }
-    if (state.financeAccountsError) {
-        return `<div class="error-msg">${state.financeAccountsError}</div>`;
-    }
-    if (!state.financeAccounts || state.financeAccounts.length === 0) {
-        return `<div class="card"><div class="card-header"><span class="card-title">Bankkonten</span></div>
-            <div class="placeholder" style="padding:40px">Keine Bankkonten für diese Abteilung konfiguriert.</div></div>`;
-    }
-
-    const accs = state.financeAccounts;
-    const selID = state.financeSelectedAccountID || accs[0].id;
-    const selAcc = accs.find(a => a.id === selID) || accs[0];
-
-    const options = accs.map(a =>
-        `<option value="${a.id}"${a.id === selID ? ' selected' : ''}>${a.name}</option>`
-    ).join('');
-
-    const balanceFormatted = selAcc.balance.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-
-    // Build bookings table
-    let bookingsSection = '';
-    if (state.financeBookingsLoading) {
-        bookingsSection = '<div class="placeholder"><span class="spinner"></span></div>';
-    } else if (state.financeBookingsError) {
-        bookingsSection = `<div class="error-msg">${state.financeBookingsError}</div>`;
-    } else {
-        const search = (state.financeBookingSearch || '').toLowerCase();
-        const filtered = (state.financeBookings || []).filter(b => {
-            if (!search) return true;
-            return (b.receiver || '').toLowerCase().includes(search) ||
-                   (b.description || '').toLowerCase().includes(search);
-        });
-
-        const rows = filtered.map(b => {
-            const amtClass = b.amount >= 0 ? 'amount-pos' : 'amount-neg';
-            const amtStr = b.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-            return `<tr>
-                <td>${formatDate(b.date)}</td>
-                <td class="col-receiver">${escHtml(b.receiver || '')}</td>
-                <td class="col-desc">${escHtml(b.description || '')}</td>
-                <td class="${amtClass}" style="text-align:right;font-variant-numeric:tabular-nums">${amtStr}</td>
-            </tr>`;
-        }).join('');
-
-        const empty = filtered.length === 0
-            ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#888">Keine Buchungen gefunden.</td></tr>'
-            : '';
-
-        bookingsSection = `
-            <div class="table-scroll">
-            <table class="data-table">
-                <thead><tr>
-                    <th>Datum</th><th class="col-receiver">Empfänger</th><th class="col-desc">Beschreibung</th><th style="text-align:right">Betrag</th>
-                </tr></thead>
-                <tbody>${rows}${empty}</tbody>
-            </table>
-            </div>`;
-    }
-
-    return `
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Bankkonten</span>
-                <select class="dept-select" onchange="setFinanceAccount(parseInt(this.value))" style="margin-left:auto">
-                    ${options}
-                </select>
-            </div>
-            <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:0.86rem">Kontostand</span><br><strong style="font-size:1.14rem">${balanceFormatted}</strong></div>
-                ${selAcc.iban ? `<div style="margin-left:16px"><span style="color:#888;font-size:0.86rem">IBAN</span><br><span style="font-family:monospace;font-size:0.93rem">${selAcc.iban}</span></div>` : ''}
-            </div>
-            <div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <label style="font-size:0.86rem;color:#666">Von</label>
-                <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateFrom}"
-                    onchange="setFinanceDateFrom(this.value)">
-                <label style="font-size:0.86rem;color:#666">Bis</label>
-                <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateTo}"
-                    onchange="setFinanceDateTo(this.value)">
-                <button class="btn-primary" onclick="loadFinanceBookings()">Laden</button>
-                <div style="margin-left:auto;position:relative">
-                    <input id="finance-search-input" type="text" class="search-input"
-                        placeholder="Suche Empfänger / Beschreibung…"
-                        style="width:220px" value="${escHtml(state.financeBookingSearch || '')}">
-                </div>
-            </div>
-            ${bookingsSection}
-        </div>
-    `;
-}
-
-function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function renderFinanceInvoices() {
-    if (state.financeInvoicesLoading) {
-        return '<div class="placeholder"><span class="spinner"></span></div>';
-    }
-    if (state.financeInvoicesError) {
-        return `<div class="error-msg">${state.financeInvoicesError}</div>`;
-    }
-
-    const search = (state.financeInvoiceSearch || '').toLowerCase();
-    const filtered = (state.financeInvoices || []).filter(inv => {
-        if (!search) return true;
-        return (inv.receiver || '').toLowerCase().includes(search) ||
-               (inv.invNumber || '').toLowerCase().includes(search) ||
-               (inv.description || '').toLowerCase().includes(search);
-    });
-
-    // Summary totals
-    const totalOpen = filtered.reduce((s, inv) => s + inv.paymentDifference, 0);
-    const totalOpenFmt = totalOpen.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-
-    const rows = filtered.flatMap(inv => {
-        const diffFmt = inv.paymentDifference.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-        const totalFmt = inv.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-        const isExpanded = state.expandedInvoiceID === inv.id;
-        const isLoading = state.invoiceItemsLoading[inv.id];
-        const expandIcon = isExpanded ? '▾' : '▸';
-
-        const cashIcon = `<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${inv.id})">💵</button>`;
-        const mainRow = `<tr class="invoice-row${isExpanded ? ' invoice-row-expanded' : ''}" onclick="toggleInvoiceItems(${inv.id})" style="cursor:pointer">
-            <td><span style="margin-right:6px;color:#888">${expandIcon}</span>${escHtml(inv.invNumber || '')}</td>
-            <td>${formatDate(inv.date)}</td>
-            <td class="col-receiver">${escHtml(inv.receiver || '')}</td>
-            <td class="col-desc">${escHtml(inv.description || '')}</td>
-            <td style="text-align:right;font-variant-numeric:tabular-nums">${totalFmt}</td>
-            <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${diffFmt}${cashIcon}</td>
-        </tr>`;
-
-        if (!isExpanded) return [mainRow];
-
-        let innerHtml;
-        if (isLoading) {
-            innerHtml = `<div class="invoice-detail-loading"><span class="spinner"></span> Lade Positionen…</div>`;
-        } else {
-            const items = state.invoiceItems[inv.id] || [];
-            const fmt = v => v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-
-            const itemRows = items.map(it => {
-                const lineTotal = it.quantity * it.unitPrice;
-                const taxLabel = it.taxRate > 0 ? `<span class="invoice-item-tax">${it.taxRate}% ${escHtml(it.taxName || 'MwSt.')}</span>` : '';
-                return `<div class="invoice-item-row">
-                    <div class="invoice-item-title">
-                        ${escHtml(it.title || '')}
-                        ${it.description ? `<div class="invoice-item-desc">${escHtml(it.description)}</div>` : ''}
-                    </div>
-                    <div class="invoice-item-qty">${it.quantity}&thinsp;×&thinsp;${fmt(it.unitPrice)}${taxLabel}</div>
-                    <div class="invoice-item-total">${fmt(lineTotal)}</div>
-                </div>`;
-            }).join('');
-
-            const chargeRow = inv.charge > 0 ? `<div class="invoice-item-row invoice-item-charge">
-                <div class="invoice-item-title">Mahngebühr</div>
-                <div class="invoice-item-qty"></div>
-                <div class="invoice-item-total">${fmt(inv.charge)}</div>
-            </div>` : '';
-
-            const chargebackRow = inv.chargeback > 0 ? `<div class="invoice-item-row invoice-item-charge">
-                <div class="invoice-item-title">Bankgebühr (Rücklastschrift)</div>
-                <div class="invoice-item-qty"></div>
-                <div class="invoice-item-total">${fmt(inv.chargeback)}</div>
-            </div>` : '';
-
-            const hasContent = items.length > 0 || inv.charge > 0 || inv.chargeback > 0;
-            innerHtml = hasContent
-                ? `<div class="invoice-items-panel">${itemRows}${chargeRow}${chargebackRow}</div>`
-                : `<div class="invoice-detail-loading" style="color:#888">Keine Positionen gefunden.</div>`;
-        }
-
-        const detailRow = `<tr class="invoice-detail-row"><td colspan="6" class="invoice-detail-cell">${innerHtml}</td></tr>`;
-        return [mainRow, detailRow];
-    }).join('');
-
-    const empty = filtered.length === 0
-        ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">${state.financeInvoices.length === 0 ? 'Keine offenen Rechnungen.' : 'Keine Treffer.'}</td></tr>`
-        : '';
-
-    return `
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Offene Rechnungen</span>
-                <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
-            </div>
-            <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
-                <div><span style="color:#888;font-size:0.86rem">Offener Gesamtbetrag</span><br>
-                    <strong class="amount-neg" style="font-size:1.14rem">${totalOpenFmt}</strong>
-                    <span style="color:#888;font-size:0.86rem;margin-left:6px">(${filtered.length} Rechnung${filtered.length !== 1 ? 'en' : ''})</span>
-                </div>
-                <div style="margin-left:auto">
-                    <input id="invoice-search-input" type="text" class="search-input"
-                        placeholder="Suche Name / Nr. / Beschreibung…"
-                        style="width:240px" value="${escHtml(state.financeInvoiceSearch || '')}">
-                </div>
-            </div>
-            <div class="table-scroll">
-            <table class="data-table">
-                <thead><tr>
-                    <th>Nr.</th><th>Datum</th><th class="col-receiver">Empfänger</th><th class="col-desc">Beschreibung</th>
-                    <th style="text-align:right">Gesamt</th><th style="text-align:right">Offen</th>
-                </tr></thead>
-                <tbody>${rows}${empty}</tbody>
-            </table>
-            </div>
-        </div>
-    `;
-}
-
-window.setFinanceTab = function(tab) {
-    state.financeTab = tab;
-    if (tab === 'overview' && !state.financeOverview && !state.financeOverviewLoading) {
-        loadFinanceOverview();
-    } else if (tab === 'accounts' && state.financeAccounts.length === 0 && !state.financeAccountsLoading) {
-        loadFinanceAccounts();
-    } else if (tab === 'invoices' && state.financeInvoices.length === 0 && !state.financeInvoicesLoading) {
-        loadInvoices();
-    } else {
-        render();
-    }
-};
-
-function loadFinanceOverview() {
-    if (!state.selectedDept) { render(); return; }
-    state.financeOverviewLoading = true;
-    state.financeOverviewError = '';
-    render();
-    GetFinanceOverview(state.selectedDept)
-        .then(ov => {
-            state.financeOverview = ov;
-            state.financeOverviewLoading = false;
-            // Also populate invoice cache in the invoices tab if already loaded
-            render();
-        })
-        .catch(err => {
-            state.financeOverviewError = String(err);
-            state.financeOverviewLoading = false;
-            render();
-        });
-}
-
-window.setFinanceAccount = function(id) {
-    state.financeSelectedAccountID = id;
-    state.financeBookings = [];
-    render();
-    loadFinanceBookings();
-};
-
-window.setFinanceDateFrom = function(v) { state.financeBookingDateFrom = v; render(); };
-window.setFinanceDateTo = function(v) { state.financeBookingDateTo = v; render(); };
-
-function formatDate(iso) {
-    if (!iso || iso.length < 10) return iso || '';
-    const [y, m, d] = iso.slice(0, 10).split('-');
-    return `${d}.${m}.${y}`;
-}
-
-window.loadFinanceBookings = function() {
-    const accs = state.financeAccounts;
-    if (!accs || accs.length === 0) return;
-    const id = state.financeSelectedAccountID || accs[0].id;
-    state.financeBookingsLoading = true;
-    state.financeBookingsError = '';
-    render();
-    GetBookings(id, state.financeBookingDateFrom, state.financeBookingDateTo)
-        .then(rows => {
-            state.financeBookings = rows || [];
-            state.financeBookingsLoading = false;
-            render();
-        })
-        .catch(err => {
-            state.financeBookingsError = String(err);
-            state.financeBookingsLoading = false;
-            render();
-        });
-};
-
-window.loadInvoices = function() { loadInvoices(true); };
-
-function loadInvoices(forceReload) {
-    if (!state.selectedDept) { render(); return; }
-    state.financeInvoicesLoading = true;
-    state.financeInvoicesError = '';
-    render();
-    const fn = forceReload ? ReloadOpenInvoices : GetOpenInvoices;
-    fn(state.selectedDept)
-        .then(rows => {
-            state.financeInvoices = rows || [];
-            state.financeInvoicesLoading = false;
-            // Keep overview open-invoice count in sync after reload
-            if (forceReload) state.financeOverview = null;
-            render();
-            if (forceReload) loadFinanceOverview();
-        })
-        .catch(err => {
-            state.financeInvoicesError = String(err);
-            state.financeInvoicesLoading = false;
-            render();
-        });
-}
-
-window.toggleInvoiceItems = function(invoiceID) {
-    if (state.expandedInvoiceID === invoiceID) {
-        state.expandedInvoiceID = null;
-        render();
-        return;
-    }
-    state.expandedInvoiceID = invoiceID;
-    if (!state.invoiceItems[invoiceID]) {
-        state.invoiceItemsLoading[invoiceID] = true;
-        render();
-        GetInvoiceItems(invoiceID)
-            .then(items => {
-                state.invoiceItems[invoiceID] = items || [];
-                state.invoiceItemsLoading[invoiceID] = false;
-                render();
-            })
-            .catch(err => {
-                state.invoiceItems[invoiceID] = [];
-                state.invoiceItemsLoading[invoiceID] = false;
-                render();
-            });
-    } else {
-        render();
-    }
-};
-
-function loadFinanceAccounts() {
-    if (!state.selectedDept) { render(); return; }
-    state.financeAccountsLoading = true;
-    state.financeAccountsError = '';
-    render();
-    GetBankAccounts(state.selectedDept)
-        .then(accs => {
-            state.financeAccounts = accs || [];
-            state.financeAccountsLoading = false;
-            if (state.financeAccounts.length > 0) {
-                state.financeSelectedAccountID = state.financeAccounts[0].id;
-                if (state.cashPaymentModal && !state.cashPaymentModal.bankAccountID) {
-                    state.cashPaymentModal.bankAccountID = state.financeAccounts[0].id;
-                } else {
-                    loadFinanceBookings();
-                }
-            }
-            render();
-        })
-        .catch(err => {
-            state.financeAccountsError = String(err);
-            state.financeAccountsLoading = false;
-            render();
-        });
-}
-
-// ── Calendar ───────────────────────────────────────────────────────────────────
-const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const BIRTHDAY_CAL = { id: -1, name: 'Geburtstage', color: '#F5C400' };
-
-
-function renderCalendar() {
-    if (state.calLoading) {
-        return '<div class="placeholder"><span class="spinner"></span></div>';
-    }
-    if (state.calError) {
-        return `<div class="error-box">${esc(state.calError)}</div>`;
-    }
-
-    const { calYear: year, calMonth: month } = state;
-    const allCals = [...state.calCalendars, BIRTHDAY_CAL];
-
-    // Filter events by enabled calendars
-    const enabledIds = new Set(allCals.filter(c => state.calEnabled[c.id] !== false).map(c => c.id));
-    const visibleEvents = state.calEvents.filter(e => enabledIds.has(e.calendarId));
-
-    const calFilterHtml = allCals.map(c => {
-        const checked = state.calEnabled[c.id] !== false;
-        return `<label class="cal-filter-item">
-            <input type="checkbox" class="cal-filter-cb" data-calid="${c.id}" ${checked ? 'checked' : ''}>
-            <span class="cal-filter-dot" style="background:${esc(c.color)}"></span>
-            ${esc(c.name)}
-        </label>`;
-    }).join('');
-
-    const isMonth = state.calView === 'month';
-    const viewToggle = `
-        <div class="cal-view-toggle">
-            <button class="cal-view-btn ${isMonth ? 'active' : ''}" id="cal-view-month" title="Monatsansicht">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <rect x="1" y="1" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="5.5" y="1" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="10" y="1" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="1" y="5.5" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="5.5" y="5.5" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="10" y="5.5" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="1" y="10" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="5.5" y="10" width="3" height="3" rx=".5" fill="currentColor"/>
-                    <rect x="10" y="10" width="3" height="3" rx=".5" fill="currentColor"/>
-                </svg>
-            </button>
-            <button class="cal-view-btn ${!isMonth ? 'active' : ''}" id="cal-view-list" title="Listenansicht">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <rect x="1" y="2" width="12" height="2" rx=".5" fill="currentColor"/>
-                    <rect x="1" y="6" width="12" height="2" rx=".5" fill="currentColor"/>
-                    <rect x="1" y="10" width="12" height="2" rx=".5" fill="currentColor"/>
-                </svg>
-            </button>
-        </div>`;
-
-    const header = `
-        <div class="cal-header">
-            <button class="btn-ghost cal-nav" id="cal-prev">&#8249;</button>
-            <span class="cal-month-title">${MONTH_NAMES[month-1]} ${year}</span>
-            <button class="btn-ghost cal-nav" id="cal-next">&#8250;</button>
-            <button class="btn-ghost" id="cal-today" style="margin-left:8px;font-size:0.86rem">Heute</button>
-            ${viewToggle}
-            <button class="btn-ghost" id="cal-reload" style="margin-left:auto;font-size:0.86rem">Neu laden</button>
-        </div>`;
-
-    const mainContent = isMonth ? renderCalendarMonth(visibleEvents, year, month) : renderCalendarList(visibleEvents);
-
-    return `
-        <div class="cal-layout">
-            <div class="cal-sidebar">
-                <div class="cal-sidebar-title">Kalender</div>
-                <div class="cal-filters">${calFilterHtml || '<span style="color:#aaa;font-size:0.86rem">Keine Kalender</span>'}</div>
-            </div>
-            <div class="cal-main">
-                ${header}
-                ${mainContent}
-            </div>
-        </div>
-    `;
-}
-
-function renderCalendarMonth(visibleEvents, year, month) {
-    // Build a map: dateStr → events[]
-    const byDay = {};
-    for (const ev of visibleEvents) {
-        const day = ev.start.slice(0, 10);
-        if (!byDay[day]) byDay[day] = [];
-        byDay[day].push(ev);
-    }
-
-    const firstDay = new Date(year, month - 1, 1).getDay();
-    const startOffset = (firstDay + 6) % 7; // Monday-based
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const today = new Date().toISOString().slice(0, 10);
-
-    let cells = '';
-    for (let i = 0; i < startOffset; i++) {
-        cells += `<div class="cal-cell cal-cell--empty"></div>`;
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const isToday = dateStr === today;
-        const dayEvents = byDay[dateStr] || [];
-        const pills = dayEvents.slice(0, 3).map(e =>
-            `<div class="cal-pill" style="background:${esc(e.color)}" title="${esc(e.name)}">${esc(e.name)}</div>`
-        ).join('');
-        const more = dayEvents.length > 3
-            ? `<div class="cal-pill cal-pill--more">+${dayEvents.length - 3}</div>` : '';
-        cells += `
-            <div class="cal-cell ${isToday ? 'cal-cell--today' : ''}">
-                <span class="cal-day-num">${d}</span>
-                <div class="cal-pills">${pills}${more}</div>
-            </div>`;
-    }
-
-    return `
-        <div class="cal-grid">
-            <div class="cal-weekday">Mo</div>
-            <div class="cal-weekday">Di</div>
-            <div class="cal-weekday">Mi</div>
-            <div class="cal-weekday">Do</div>
-            <div class="cal-weekday">Fr</div>
-            <div class="cal-weekday">Sa</div>
-            <div class="cal-weekday">So</div>
-            ${cells}
-        </div>`;
-}
-
-function renderCalendarList(visibleEvents) {
-    if (visibleEvents.length === 0) {
-        return '<div class="placeholder" style="padding:40px">Keine Termine in diesem Monat.</div>';
-    }
-
-    // Sort by start date ascending
-    const sorted = [...visibleEvents].sort((a, b) => a.start.localeCompare(b.start));
-
-    // Group by date
-    const groups = [];
-    let currentDate = null;
-    let currentItems = [];
-    for (const ev of sorted) {
-        const dateStr = ev.start.slice(0, 10);
-        if (dateStr !== currentDate) {
-            if (currentDate) groups.push({ date: currentDate, events: currentItems });
-            currentDate = dateStr;
-            currentItems = [];
-        }
-        currentItems.push(ev);
-    }
-    if (currentDate) groups.push({ date: currentDate, events: currentItems });
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    const rows = groups.map(g => {
-        const d = new Date(g.date + 'T00:00:00');
-        const weekday = ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
-        const dayNum = d.getDate();
-        const isToday = g.date === today;
-
-        const eventRows = g.events.map(ev => {
-            const timeStr = ev.allDay ? 'Ganztägig' : ev.start.length > 10 ? ev.start.slice(11, 16) + ' Uhr' : '';
-            const endStr  = !ev.allDay && ev.end && ev.end.length > 10 ? ' – ' + ev.end.slice(11, 16) + ' Uhr' : '';
-            const badge = ev.type === 'birthday'
-                ? `<span class="cal-list-badge cal-list-badge--birthday">🎂</span>`
-                : '';
-            return `
-                <div class="cal-list-event">
-                    <span class="cal-list-dot" style="background:${esc(ev.color)}"></span>
-                    <div class="cal-list-event-body">
-                        <span class="cal-list-name">${badge}${esc(ev.name)}</span>
-                        <span class="cal-list-meta">${esc(ev.calendarName)}${timeStr ? ' · ' + timeStr + endStr : ''}</span>
-                    </div>
-                </div>`;
-        }).join('');
-
-        return `
-            <div class="cal-list-row ${isToday ? 'cal-list-row--today' : ''}">
-                <div class="cal-list-date">
-                    <span class="cal-list-weekday">${weekday}</span>
-                    <span class="cal-list-daynum ${isToday ? 'cal-list-daynum--today' : ''}">${dayNum}</span>
-                </div>
-                <div class="cal-list-events">${eventRows}</div>
-            </div>`;
-    }).join('');
-
-    return `<div class="cal-list">${rows}</div>`;
-}
-
-// ── Settings ───────────────────────────────────────────────────────────────────
-function renderSettings() {
-    const s = state.settings;
-    const loading = state.configLoading;
-
-    if (!s && loading) return '<div class="placeholder"><span class="spinner"></span></div>';
-    if (!s) return '<div class="placeholder">Einstellungen werden geladen…</div>';
-
-    const curFontSize = getFontSize();
-
-    return `
-        <div class="settings-grid">
-            ${s.configError ? `<div class="error-box">${esc(s.configError)}</div>` : ''}
-
-            <div class="card">
-                <div class="card-header"><span class="card-title">Darstellung</span></div>
-                <div style="padding:16px">
-                    <div class="settings-field">
-                        <label>Schriftgröße</label>
-                        <div class="settings-value" style="gap:10px;align-items:center">
-                            <button class="btn-ghost font-size-btn" data-delta="-1" style="font-size:1.14rem;padding:2px 10px;line-height:1" title="Kleiner">A−</button>
-                            <input type="range" id="font-size-slider"
-                                min="${FONT_SIZE_MIN}" max="${FONT_SIZE_MAX}" value="${curFontSize}"
-                                style="width:120px;cursor:pointer">
-                            <button class="btn-ghost font-size-btn" data-delta="1" style="font-size:1.29rem;padding:2px 10px;line-height:1" title="Größer">A+</button>
-                            <span id="font-size-label" style="min-width:32px;text-align:right;font-weight:600">${curFontSize}px</span>
-                            <button class="btn-ghost" id="font-size-reset" style="font-size:0.79rem;padding:3px 8px">Zurücksetzen</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><span class="card-title">Version</span></div>
-                <div style="padding:16px">
-                    <div class="settings-field">
-                        <label>App-Version</label>
-                        <div class="settings-value"><span>${esc(s.version || '—')}</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><span class="card-title">Schlüssel & Konfiguration</span></div>
-                <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
-                    <div class="settings-field">
-                        <label>Public Key (age)</label>
-                        <div class="settings-value">
-                            <span>${esc(s.publicKey || '—')}</span>
-                            ${s.publicKey ? `<button class="copy-btn" data-copy="${esc(s.publicKey)}">Kopieren</button>` : ''}
-                            ${s.publicKey ? `<button class="btn-ghost" id="export-pubkey-btn" style="font-size:0.79rem;padding:3px 8px">Als Datei speichern</button>` : ''}
-                        </div>
-                    </div>
-                    <div class="settings-field">
-                        <label>Externe Konfiguration URL</label>
-                        <div class="settings-value"><span>${esc(s.configURL)}</span></div>
-                    </div>
-                    <div class="settings-field">
-                        <label>API Base URL</label>
-                        <div class="settings-value"><span>${esc(s.baseURL || '—')}</span></div>
-                    </div>
-                    <div class="settings-field">
-                        <label>API Token</label>
-                        <div class="settings-value"><span>${esc(s.tokenMasked || '—')}</span></div>
-                    </div>
-                    <div style="display:flex;gap:8px;margin-top:4px">
-                        <button class="btn-primary" id="reload-config-btn" ${loading ? 'disabled' : ''}>
-                            ${loading ? '<span class="spinner"></span> Wird geladen…' : 'Konfiguration neu laden'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// ── Cash payment modal ─────────────────────────────────────────────────────────
-
-function renderCashPaymentModal() {
-    const m = state.cashPaymentModal;
-    const bankAccounts = state.financeAccounts || [];
-    const today = new Date().toISOString().slice(0, 10);
-    const selectedBankID = m.bankAccountID || (bankAccounts.length > 0 ? bankAccounts[0].id : 0);
-    const selectedBank = bankAccounts.find(a => a.id === selectedBankID);
-    const amount = m.amount != null ? m.amount : m.inv.paymentDifference;
-    const date = m.date || today;
-    const fmt = v => v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-    const receiver = (m.inv.receiver || '').split('\n')[0].trim();
-    const description = `Barzahlung ${m.inv.invNumber || ''}${m.inv.refNumber ? ' / Ref: ' + m.inv.refNumber : ''}`;
-
-    if (m.confirmed) {
-        return `
-        <div class="modal-backdrop" onclick="closeCashPaymentModal()">
-            <div class="modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <span class="modal-title">Buchung bestätigen</span>
-                    <button class="modal-close" onclick="closeCashPaymentModal()">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-confirm-intro">Bitte die Buchungsparameter prüfen und anschließend buchen.</div>
-                    <div class="modal-confirm-table">
-                        <div class="modal-confirm-row"><span class="modal-label">Bankkonto</span><strong>${escHtml(selectedBank ? selectedBank.name : String(selectedBankID))}</strong></div>
-                        <div class="modal-confirm-row"><span class="modal-label">Betrag</span><strong class="amount-pos">${fmt(amount)}</strong></div>
-                        <div class="modal-confirm-row"><span class="modal-label">Datum</span><strong>${formatDate(date)}</strong></div>
-                        <div class="modal-confirm-row"><span class="modal-label">Empfänger</span><span>${escHtml(receiver)}</span></div>
-                        <div class="modal-confirm-row"><span class="modal-label">Beschreibung</span><span>${escHtml(description)}</span></div>
-                    </div>
-                    ${state.cashPaymentError ? `<div class="modal-error">${escHtml(state.cashPaymentError)}</div>` : ''}
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-ghost" onclick="cashPaymentBack()">Zurück</button>
-                    <button class="btn-primary" id="cash-pay-submit" ${state.cashPaymentLoading ? 'disabled' : ''}>
-                        ${state.cashPaymentLoading ? '<span class="spinner"></span> Wird gebucht…' : 'Buchen'}
-                    </button>
-                </div>
-            </div>
-        </div>`;
-    }
-
-    const bankOptions = bankAccounts.map(a =>
-        `<option value="${a.id}" ${a.id === selectedBankID ? 'selected' : ''}>${escHtml(a.name)}${a.iban ? ' · ' + escHtml(a.iban) : ''}</option>`
-    ).join('');
-
-    return `
-    <div class="modal-backdrop" onclick="closeCashPaymentModal()">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <span class="modal-title">Barzahlung erfassen</span>
-                <button class="modal-close" onclick="closeCashPaymentModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-invoice-info">
-                    <div><span class="modal-label">Rechnung</span> <strong>${escHtml(m.inv.invNumber || '')}</strong></div>
-                    <div><span class="modal-label">Empfänger</span> ${escHtml(receiver)}</div>
-                    <div><span class="modal-label">Offen</span> <span class="amount-neg">${fmt(m.inv.paymentDifference)}</span></div>
-                </div>
-                <div class="modal-fields">
-                    <label class="modal-field-label">Bankkonto (Handkasse)
-                        <select id="cash-account-select" class="modal-input">${bankOptions}</select>
-                    </label>
-                    <label class="modal-field-label">Betrag (€)
-                        <input id="cash-amount-input" type="number" step="0.01" min="0.01"
-                            class="modal-input" value="${amount.toFixed(2)}">
-                    </label>
-                    <label class="modal-field-label">Datum
-                        <input id="cash-date-input" type="date" class="modal-input" value="${date}">
-                    </label>
-                </div>
-                ${state.cashPaymentError ? `<div class="modal-error">${escHtml(state.cashPaymentError)}</div>` : ''}
-            </div>
-            <div class="modal-footer">
-                <button class="btn-ghost" onclick="closeCashPaymentModal()">Abbrechen</button>
-                <button class="btn-primary" id="cash-pay-review">Weiter →</button>
-            </div>
-        </div>
-    </div>`;
-}
-
-window.openCashPaymentModal = function(invoiceID) {
-    const inv = (state.financeInvoices || []).find(i => i.id === invoiceID);
-    if (!inv) return;
-    state.cashPaymentModal = {
-        inv,
-        bankAccountID: state.financeAccounts.length > 0 ? state.financeAccounts[0].id : 0,
-        amount: null,
-        date: new Date().toISOString().slice(0, 10),
-        confirmed: false,
-    };
-    state.cashPaymentError = '';
-    if (state.financeAccounts.length === 0 && !state.financeAccountsLoading) {
-        loadFinanceAccounts();
-    } else {
-        render();
-    }
-};
-
-window.closeCashPaymentModal = function() {
-    state.cashPaymentModal = null;
-    state.cashPaymentError = '';
-    render();
-};
-
-window.cashPaymentBack = function() {
-    state.cashPaymentModal.confirmed = false;
-    state.cashPaymentError = '';
-    render();
-};
-
-function attachCashPaymentListeners() {
-    // Eingabeansicht: Weiter-Button
-    const reviewBtn = document.getElementById('cash-pay-review');
-    if (reviewBtn) {
-        document.getElementById('cash-account-select')?.addEventListener('change', e => {
-            state.cashPaymentModal.bankAccountID = parseInt(e.target.value, 10);
-        });
-        document.getElementById('cash-amount-input')?.addEventListener('input', e => {
-            state.cashPaymentModal.amount = parseFloat(e.target.value) || 0;
-        });
-        document.getElementById('cash-date-input')?.addEventListener('input', e => {
-            state.cashPaymentModal.date = e.target.value;
-        });
-        reviewBtn.addEventListener('click', () => {
-            const accountID = parseInt(document.getElementById('cash-account-select').value, 10);
-            const amount = parseFloat(document.getElementById('cash-amount-input').value);
-            const date = document.getElementById('cash-date-input').value;
-            if (!accountID) { state.cashPaymentError = 'Bitte ein Bankkonto auswählen.'; render(); return; }
-            if (!amount || amount <= 0) { state.cashPaymentError = 'Bitte einen gültigen Betrag eingeben.'; render(); return; }
-            if (!date) { state.cashPaymentError = 'Bitte ein Datum eingeben.'; render(); return; }
-            state.cashPaymentModal.bankAccountID = accountID;
-            state.cashPaymentModal.amount = amount;
-            state.cashPaymentModal.date = date;
-            state.cashPaymentModal.confirmed = true;
-            state.cashPaymentError = '';
-            render();
-        });
-        return;
-    }
-
-    // Bestätigungsansicht: Buchen-Button
-    const submitBtn = document.getElementById('cash-pay-submit');
-    if (!submitBtn) return;
-
-    submitBtn.addEventListener('click', () => {
-        const m = state.cashPaymentModal;
-        state.cashPaymentLoading = true;
-        state.cashPaymentError = '';
-        render();
-
-        const receiver = (m.inv.receiver || '').split('\n')[0].trim();
-        CreateCashPayment(m.bankAccountID, m.inv.id, m.amount, m.date, m.inv.invNumber || '', receiver)
-            .then(() => {
-                state.cashPaymentLoading = false;
-                state.cashPaymentModal = null;
-                state.cashPaymentError = '';
-                // Reload invoices so the paid invoice disappears / updates
-                loadInvoices(true);
-            })
-            .catch(err => {
-                state.cashPaymentLoading = false;
-                state.cashPaymentError = String(err);
-                render();
-            });
-    });
-}
-
 // ── Event listeners ────────────────────────────────────────────────────────────
 function attachListeners() {
-    // Sidebar nav
     document.querySelectorAll('[data-tab]').forEach(el => {
         el.addEventListener('click', () => {
             state.activeTab = el.dataset.tab;
@@ -1227,7 +129,6 @@ function attachListeners() {
         });
     });
 
-    // Department selector
     const deptSel = document.getElementById('dept-select');
     if (deptSel) {
         deptSel.addEventListener('change', () => {
@@ -1244,58 +145,40 @@ function attachListeners() {
             state.invoiceItemsLoading = {};
             render();
             loadMembers(false);
-            // Reload calendar events so birthdays update for new department
             if (state.calCalendars.length > 0) loadCalendarEvents();
         });
     }
 
-    // Member search
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('input', e => {
-            state.search = e.target.value;
-            refreshContent();
-        });
-        // Keep focus after re-render
+        searchInput.addEventListener('input', e => { state.search = e.target.value; refreshContent(); });
         searchInput.focus();
         searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
 
-    // Finance booking search
     const finSearchInput = document.getElementById('finance-search-input');
     if (finSearchInput) {
-        finSearchInput.addEventListener('input', e => {
-            state.financeBookingSearch = e.target.value;
-            refreshContent();
-        });
+        finSearchInput.addEventListener('input', e => { state.financeBookingSearch = e.target.value; refreshContent(); });
         finSearchInput.focus();
         finSearchInput.setSelectionRange(finSearchInput.value.length, finSearchInput.value.length);
     }
 
-    // Invoice search
     const invSearchInput = document.getElementById('invoice-search-input');
     if (invSearchInput) {
-        invSearchInput.addEventListener('input', e => {
-            state.financeInvoiceSearch = e.target.value;
-            refreshContent();
-        });
+        invSearchInput.addEventListener('input', e => { state.financeInvoiceSearch = e.target.value; refreshContent(); });
         invSearchInput.focus();
         invSearchInput.setSelectionRange(invSearchInput.value.length, invSearchInput.value.length);
     }
 
-    // Reload members
     const reloadBtn = document.getElementById('reload-btn');
     if (reloadBtn) reloadBtn.addEventListener('click', () => loadMembers(true));
 
-    // Excel export
     const excelBtn = document.getElementById('excel-export-btn');
     if (excelBtn) excelBtn.addEventListener('click', doExportExcel);
 
-    // Export public key as file
     const exportPubKeyBtn = document.getElementById('export-pubkey-btn');
     if (exportPubKeyBtn) exportPubKeyBtn.addEventListener('click', doExportPublicKey);
 
-    // Font size controls
     const fontSlider = document.getElementById('font-size-slider');
     if (fontSlider) {
         fontSlider.addEventListener('input', e => {
@@ -1308,8 +191,7 @@ function attachListeners() {
     document.querySelectorAll('.font-size-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const delta = parseInt(btn.dataset.delta, 10);
-            const cur = getFontSize();
-            const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, cur + delta));
+            const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, getFontSize() + delta));
             applyFontSize(next);
             if (fontSlider) fontSlider.value = next;
             const lbl = document.getElementById('font-size-label');
@@ -1326,7 +208,6 @@ function attachListeners() {
         });
     }
 
-    // Column toggle
     const colBtn = document.getElementById('col-toggle-btn');
     if (colBtn) {
         colBtn.addEventListener('click', e => {
@@ -1343,7 +224,6 @@ function attachListeners() {
         });
     });
 
-    // Sort
     document.querySelectorAll('th[data-sort]').forEach(th => {
         th.addEventListener('click', () => {
             const col = th.dataset.sort;
@@ -1353,7 +233,6 @@ function attachListeners() {
         });
     });
 
-    // Copy buttons
     document.querySelectorAll('[data-copy]').forEach(btn => {
         btn.addEventListener('click', () => {
             navigator.clipboard.writeText(btn.dataset.copy).catch(() => {});
@@ -1363,20 +242,17 @@ function attachListeners() {
         });
     });
 
-    // Overview collapse toggle
     document.querySelectorAll('.overview-toggle').forEach(el => {
         el.addEventListener('click', () => {
             const name = el.dataset.dept;
-            state.overviewExpanded[name] = state.overviewExpanded[name] === false ? true : false;
+            state.overviewExpanded[name] = !state.overviewExpanded[name];
             refreshContent();
         });
     });
 
-    // Reload config
     const reloadConfigBtn = document.getElementById('reload-config-btn');
     if (reloadConfigBtn) reloadConfigBtn.addEventListener('click', doReloadConfig);
 
-    // Calendar navigation
     const calPrev = document.getElementById('cal-prev');
     if (calPrev) calPrev.addEventListener('click', () => {
         state.calMonth--;
@@ -1404,7 +280,6 @@ function attachListeners() {
     const calViewList = document.getElementById('cal-view-list');
     if (calViewList) calViewList.addEventListener('click', () => { state.calView = 'list'; refreshContent(); });
 
-    // Calendar filter checkboxes
     document.querySelectorAll('.cal-filter-cb').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = parseInt(e.target.dataset.calid);
@@ -1413,7 +288,6 @@ function attachListeners() {
         });
     });
 
-    // Close column menu on outside click
     if (state.colMenuOpen) {
         setTimeout(() => {
             document.addEventListener('click', e => {
@@ -1423,47 +297,6 @@ function attachListeners() {
                 }
             }, { once: true });
         }, 0);
-    }
-}
-
-function refreshContent() {
-    const el = document.getElementById('content');
-    if (el) el.innerHTML = renderContent();
-    // Re-attach only content-level listeners
-    attachListeners();
-}
-
-// ── Export handlers ────────────────────────────────────────────────────────────
-async function doExportExcel() {
-    if (!state.selectedDept) return;
-    try {
-        const path = await ExportMembersExcel(state.selectedDept);
-        if (path) {
-            const btn = document.getElementById('excel-export-btn');
-            if (btn) {
-                const prev = btn.innerHTML;
-                btn.textContent = 'Gespeichert!';
-                setTimeout(() => { btn.innerHTML = prev; }, 2000);
-            }
-        }
-    } catch (e) {
-        alert('Excel-Export fehlgeschlagen: ' + String(e));
-    }
-}
-
-async function doExportPublicKey() {
-    try {
-        const path = await ExportPublicKey();
-        if (path) {
-            const btn = document.getElementById('export-pubkey-btn');
-            if (btn) {
-                const prev = btn.textContent;
-                btn.textContent = 'Gespeichert!';
-                setTimeout(() => { btn.textContent = prev; }, 2000);
-            }
-        }
-    } catch (e) {
-        alert('Fehler beim Speichern des Public Keys: ' + String(e));
     }
 }
 
@@ -1483,121 +316,13 @@ async function loadDepartments() {
     }
 }
 
-async function loadMembers(force) {
-    if (!state.selectedDept) return;
-    state.loading = true;
-    state.error = '';
-    render();
-    try {
-        const rows = await (force ? ReloadMembers : GetMembers)(state.selectedDept);
-        state.members = rows || [];
-    } catch (e) {
-        state.error = String(e);
-        state.members = [];
-    } finally {
-        state.loading = false;
-        render();
-    }
-}
-
-async function loadOverview() {
-    state.overviewLoading = true;
-    state.overviewError = '';
-    if (state.activeTab === 'overview') refreshContent();
-    try {
-        state.overview = await GetDepartmentOverview();
-    } catch (e) {
-        state.overviewError = String(e);
-    } finally {
-        state.overviewLoading = false;
-        if (state.activeTab === 'overview') refreshContent();
-    }
-}
-
-function applyActiveModules(settings) {
-    if (settings && settings.activeModules && settings.activeModules.length > 0) {
-        state.activeModules = settings.activeModules;
-    } else {
-        state.activeModules = null;
-    }
-    // Falls der aktive Tab deaktiviert wurde, zum ersten aktiven wechseln.
-    const mainModules = ['overview', 'members', 'finance', 'calendar'];
-    if (mainModules.includes(state.activeTab) && !isModuleActive(state.activeTab)) {
-        state.activeTab = mainModules.find(m => isModuleActive(m)) || 'settings';
-    }
-}
-
-async function loadSettings() {
-    try {
-        state.settings = await GetSettings();
-        applyActiveModules(state.settings);
-        render();
-    } catch (e) {
-        state.settings = { configError: String(e), publicKey: '', baseURL: '', tokenMasked: '', configURL: '' };
-        if (state.activeTab === 'settings') refreshContent();
-    }
-}
-
-async function doReloadConfig() {
-    state.configLoading = true;
-    state.settings = null;
-    state.overview = null;
-    refreshContent();
-    try {
-        state.settings = await ReloadConfig();
-        applyActiveModules(state.settings);
-        const depts = await GetDepartments();
-        state.departments = depts || [];
-        if (state.departments.length > 0 && !state.departments.includes(state.selectedDept)) {
-            state.selectedDept = state.departments[0];
-            state.members = [];
-        }
-    } catch (e) {
-        state.settings = { configError: String(e), publicKey: '', baseURL: '', tokenMasked: '', configURL: '' };
-    } finally {
-        state.configLoading = false;
-        render();
-    }
-}
-
-async function loadCalendarData() {
-    // Load calendars once, then load events
-    if (state.calCalendars.length === 0) {
-        try {
-            const cals = await GetCalendars();
-            state.calCalendars = cals || [];
-            // Enable all by default
-            for (const c of state.calCalendars) {
-                if (!(c.id in state.calEnabled)) state.calEnabled[c.id] = true;
-            }
-            if (!(-1 in state.calEnabled)) state.calEnabled[-1] = true;
-        } catch (e) {
-            state.calError = String(e);
-            state.calLoading = false;
-            if (state.activeTab === 'calendar') refreshContent();
-            return;
-        }
-    }
-    await loadCalendarEvents();
-}
-
-async function loadCalendarEvents() {
-    state.calLoading = true;
-    state.calError = '';
-    if (state.activeTab === 'calendar') refreshContent();
-    try {
-        const evts = await GetCalendarEvents(state.selectedDept || '', state.calYear, state.calMonth);
-        state.calEvents = evts || [];
-    } catch (e) {
-        state.calError = String(e);
-        state.calEvents = [];
-    } finally {
-        state.calLoading = false;
-        if (state.activeTab === 'calendar') refreshContent();
-    }
-}
-
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
+initMembers(render, refreshContent);
+initOverview(render, refreshContent);
+initCalendar(render, refreshContent);
+initFinance(render, refreshContent);
+initSettings(render, refreshContent);
+
 render();
 loadDepartments();
 loadSettings();

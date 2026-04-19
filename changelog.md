@@ -4,6 +4,12 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.0] - 2026-04-19
+
+### Geändert
+- Erste stabile Version: Mitglieder-, Kalender- und Finanz-Modul vollständig implementiert
+- Versionssprung auf 1.0.0 (Semantic Versioning)
+
 ## [0.91.21] - 2026-04-19
 
 ### Geändert
