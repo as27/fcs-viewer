@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.21] - 2026-04-19
+
+### Geändert
+- macOS Traffic Light Buttons werden jetzt korrekt angezeigt (TitleBarDefault)
+
 ## [0.91.20] - 2026-04-19
 
 ### Geändert
