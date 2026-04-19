@@ -8,6 +8,7 @@ API-Client. **Lies zuerst die Dokumentation unter
 ## Verbotene Patterns
 - Keinen eigenen HTTP-Client für die easyVerein API implementieren
 - Immer die Typen aus `easyvapi` verwenden, nicht eigene definieren
+- Keine Änderungen im Ordner vendor vornehmen
 
 ## Go-Setup
 Vendor ist aktiviert. Nach `go get` immer `go mod vendor` ausführen:
@@ -80,3 +81,8 @@ wails generate module
 ### Bekannte Einschränkungen
 - Gruppen-Auflösung lädt alle MemberGroups per API (kein Cache)
 - Rechnungsabgleich per Namens-Substring: funktioniert nur wenn Empfänger-Feld Vor- und Nachname enthält
+
+### Nacharbeiten
+- Nach jeder Änderung eine neue Version erzeugen
+- Mit jeder neuen Version das Changelog anpassen
+- Am Ende ein Commit mit einer kurzen Beschreibung der Änderungen erstellen.
