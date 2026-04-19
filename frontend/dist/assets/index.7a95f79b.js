@@ -106,7 +106,7 @@
             </tr></thead>
             <tbody>
                 ${n.map(c=>`<tr>
-                    ${t.map(i=>`<td title="${u(c[i.key])}">${u(c[i.key])}</td>`).join("")}
+                    ${t.map(i=>`<td title="${u(c[i.key])}"${i.key==="groups"?' style="white-space:normal;min-width:120px;max-width:220px"':""}>${u(c[i.key])}</td>`).join("")}
                 </tr>`).join("")}
             </tbody>
         </table>`;return`

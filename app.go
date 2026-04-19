@@ -21,7 +21,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "0.91.16"
+const AppVersion = "0.91.18"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -778,7 +778,7 @@ func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, da
 
 	_, err := client.Bookings.Create(a.ctx, model.BookingCreate{
 		Amount:         amount,
-		BankAccount:    bankAccountID,
+		BillingAccount: bankAccountID,
 		Date:           date,
 		Description:    desc,
 		Receiver:       receiver,
@@ -1179,11 +1179,11 @@ func calcAge(dob string) int {
 func memberToRow(m model.Member) MemberRow {
 	var groups, shorts []string
 	for _, mg := range m.MemberGroups {
-		if mg.Name != "" {
-			groups = append(groups, mg.Name)
+		if mg.MemberGroup.Name != "" {
+			groups = append(groups, mg.MemberGroup.Name)
 		}
-		if mg.Short != "" {
-			shorts = append(shorts, mg.Short)
+		if mg.MemberGroup.Short != "" {
+			shorts = append(shorts, mg.MemberGroup.Short)
 		}
 	}
 

@@ -49,16 +49,14 @@ type Booking struct {
 type BookingCreate struct {
 	// Amount is the monetary amount (required).
 	Amount float64 `json:"amount"`
-	// BillingAccount is the ID of the billing/contra account (Gegenkonto).
-	BillingAccount int `json:"billingAccount,omitempty"`
-	// BankAccount is the ID of the bank account to post the booking to.
-	BankAccount int `json:"bankAccount,omitempty"`
+	// BillingAccount is the ID of the billing account to book against (required).
+	BillingAccount int `json:"billingAccount"`
 	// Description is an optional free-text description.
 	Description string `json:"description,omitempty"`
 	// Date is the booking date in YYYY-MM-DD format (required).
 	Date string `json:"date"`
 	// Receiver is an optional counterpart name.
 	Receiver string `json:"receiver,omitempty"`
-	// RelatedInvoice links this booking to one or more invoices via their API URLs.
+	// RelatedInvoice is an optional list of invoice URLs to link to this booking.
 	RelatedInvoice []string `json:"relatedInvoice,omitempty"`
 }

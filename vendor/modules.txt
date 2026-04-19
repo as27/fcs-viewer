@@ -21,7 +21,7 @@ git.sr.ht/~jackmordaunt/go-toast/v2/wintoast
 # github.com/as27/ageloader v0.0.0-20260406080304-c681b91c5fbb
 ## explicit; go 1.25.0
 github.com/as27/ageloader
-# github.com/as27/easyvapi v1.0.1
+# github.com/as27/easyvapi v1.0.3
 ## explicit; go 1.26
 github.com/as27/easyvapi
 github.com/as27/easyvapi/model

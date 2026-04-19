@@ -286,7 +286,7 @@ function renderMembers() {
             </tr></thead>
             <tbody>
                 ${rows.map(m => `<tr>
-                    ${visibleCols.map(c => `<td title="${esc(m[c.key])}">${esc(m[c.key])}</td>`).join('')}
+                    ${visibleCols.map(c => `<td title="${esc(m[c.key])}"${c.key === 'groups' ? ' style="white-space:normal;min-width:120px;max-width:220px"' : ''}>${esc(m[c.key])}</td>`).join('')}
                 </tr>`).join('')}
             </tbody>
         </table>`;

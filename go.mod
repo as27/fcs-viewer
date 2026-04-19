@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/as27/ageloader v0.0.0-20260406080304-c681b91c5fbb
-	github.com/as27/easyvapi v1.0.1
+	github.com/as27/easyvapi v1.0.3
 	github.com/wailsapp/wails/v2 v2.12.0
 	github.com/xuri/excelize/v2 v2.10.1
 	gopkg.in/yaml.v3 v3.0.1

@@ -4,6 +4,19 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.18] - 2026-04-19
+
+### Geändert
+- easyvapi auf v1.0.3 aktualisiert (RelatedInvoice in BookingCreate wieder verfügbar)
+- Barzahlung verknüpft Buchung wieder mit der zugehörigen Rechnung via RelatedInvoice
+
+## [0.91.17] - 2026-04-19
+
+### Geändert
+- easyvapi auf v1.0.2 aktualisiert (MemberGroupMembership Through-Model für korrekte Gruppen-Deserialisierung)
+- Mitglieder-Modul: Gruppen-Spalte erlaubt jetzt Textumbruch (white-space: normal)
+- Barzahlung: `BankAccount` → `BillingAccount` angepasst, `RelatedInvoice` entfernt (nicht mehr in BookingCreate)
+
 ## [0.91.16] - 2026-04-18
 
 ### Geändert
