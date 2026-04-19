@@ -4,6 +4,18 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [0.91.20] - 2026-04-19
+
+### Geändert
+- easyvapi auf v1.0.5 aktualisiert (BillingAccount omitempty in BookingCreate)
+- Barzahlung: HTTP 400 "billingAccount: 0" behoben
+
+## [0.91.19] - 2026-04-19
+
+### Geändert
+- easyvapi auf v1.0.4 aktualisiert (BankAccount-Feld in BookingCreate)
+- Barzahlung: BankAccount-ID wird jetzt korrekt als bankAccount übergeben (statt billingAccount)
+
 ## [0.91.18] - 2026-04-19
 
 ### Geändert

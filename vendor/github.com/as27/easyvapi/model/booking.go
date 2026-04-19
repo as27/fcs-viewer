@@ -50,7 +50,7 @@ type BookingCreate struct {
 	// Amount is the monetary amount (required).
 	Amount float64 `json:"amount"`
 	// BillingAccount is the ID of the billing account to book against (required).
-	BillingAccount int `json:"billingAccount"`
+	BillingAccount int `json:"billingAccount,omitempty"`
 	// Description is an optional free-text description.
 	Description string `json:"description,omitempty"`
 	// Date is the booking date in YYYY-MM-DD format (required).
@@ -59,4 +59,6 @@ type BookingCreate struct {
 	Receiver string `json:"receiver,omitempty"`
 	// RelatedInvoice is an optional list of invoice URLs to link to this booking.
 	RelatedInvoice []string `json:"relatedInvoice,omitempty"`
+	// BankAccount is the ID of the bank account this booking belongs to (optional).
+	BankAccount int `json:"bankAccount,omitempty"`
 }

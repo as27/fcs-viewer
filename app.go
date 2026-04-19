@@ -21,7 +21,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "0.91.18"
+const AppVersion = "0.91.20"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -777,9 +777,9 @@ func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, da
 	}
 
 	_, err := client.Bookings.Create(a.ctx, model.BookingCreate{
-		Amount:         amount,
-		BillingAccount: bankAccountID,
-		Date:           date,
+		Amount:      amount,
+		BankAccount: bankAccountID,
+		Date:        date,
 		Description:    desc,
 		Receiver:       receiver,
 		RelatedInvoice: relatedInvoice,
