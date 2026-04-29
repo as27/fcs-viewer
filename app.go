@@ -16,7 +16,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.0"
+const AppVersion = "1.0.1"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {

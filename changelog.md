@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.1] - 2026-04-29
+
+### Geändert
+- Barzahlung (💵) in offenen Rechnungen nur sichtbar wenn das Modul `finance-handkasse` für den Benutzer aktiv ist
+
 ## [1.0.0] - 2026-04-19
 
 ### Geändert

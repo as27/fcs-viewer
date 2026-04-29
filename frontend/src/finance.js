@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { esc, escHtml, formatDate } from './utils.js';
+import { isModuleActive } from './settings.js';
 import { GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
 
 const FINANCE_TABS = ['overview', 'accounts', 'invoices'];
@@ -263,7 +264,9 @@ function renderFinanceInvoices() {
         const isLoading = state.invoiceItemsLoading[inv.id];
         const expandIcon = isExpanded ? '▾' : '▸';
 
-        const cashIcon = `<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${inv.id})">💵</button>`;
+        const cashIcon = isModuleActive('finance-handkasse')
+            ? `<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${inv.id})">💵</button>`
+            : '';
         const mainRow = `<tr class="invoice-row${isExpanded ? ' invoice-row-expanded' : ''}" onclick="toggleInvoiceItems(${inv.id})" style="cursor:pointer">
             <td><span style="margin-right:6px;color:#888">${expandIcon}</span>${escHtml(inv.invNumber || '')}</td>
             <td>${formatDate(inv.date)}</td>
