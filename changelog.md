@@ -4,6 +4,16 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.2] - 2026-04-30
+
+### Hinzugefügt
+- Neues Modul "Inventar" integriert
+- Darstellung von Inventargruppen, Orten und einzelnen Inventar-Items in separaten Reitern
+- Caching für das Inventar-Modul hinzugefügt
+
+### Geändert
+- UI-Anpassungen im Inventar-Modul für verbesserte Darstellung (Textumbruch bei langen Beschreibungen)
+
 ## [1.0.1] - 2026-04-29
 
 ### Geändert

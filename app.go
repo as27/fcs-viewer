@@ -16,7 +16,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.1"
+const AppVersion = "1.0.2"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -69,6 +69,7 @@ type App struct {
 	apiClient         *easyvapi.Client
 	memberCache       map[string][]MemberRow
 	invoiceCache      map[string][]InvoiceRow
+	inventoryCache    *InventoryOverview
 	activeModules     []string
 	activeDepartments []string
 }
@@ -116,6 +117,7 @@ func (a *App) ReloadConfig() Settings {
 	a.mu.Lock()
 	a.memberCache = make(map[string][]MemberRow)
 	a.invoiceCache = make(map[string][]InvoiceRow)
+	a.inventoryCache = nil
 	a.mu.Unlock()
 
 	a.loadExternalConfig()
