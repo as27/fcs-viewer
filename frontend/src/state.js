@@ -24,6 +24,10 @@ export const state = {
     calLoading: false,
     calError: '',
     calView: 'month',
+    inventoryTab: 'items', // 'items', 'groups', 'locations'
+    inventoryData: null,
+    inventoryLoading: false,
+    inventoryError: '',
     financeTab: 'overview',
     financeOverview: null,
     financeOverviewLoading: false,
@@ -72,5 +76,6 @@ export const PAGE_TITLES = {
     members:  'Mitglieder',
     finance:  'Finanzen',
     calendar: 'Kalender',
+    inventory: 'Inventar',
     settings: 'Einstellungen',
 };

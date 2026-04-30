@@ -8,6 +8,7 @@ import { renderMembers, loadMembers, doExportExcel, init as initMembers } from '
 import { renderOverview, loadOverview, init as initOverview } from './overview.js';
 import { renderCalendar, loadCalendarData, loadCalendarEvents, init as initCalendar } from './calendar.js';
 import { renderFinance, renderCashPaymentModal, attachCashPaymentListeners, loadFinanceOverview, loadFinanceAccounts, init as initFinance } from './finance.js';
+import { renderInventory, loadInventoryOverview, attachInventoryListeners, init as initInventory } from './inventory.js';
 import { renderSettings, isModuleActive, loadSettings, doReloadConfig, doExportPublicKey, applyActiveModules, init as initSettings } from './settings.js';
 
 applyFontSize(getFontSize());
@@ -28,12 +29,14 @@ function render() {
     `;
     attachListeners();
     attachCashPaymentListeners();
+    if (state.activeTab === 'inventory') attachInventoryListeners();
 }
 
 function refreshContent() {
     const el = document.getElementById('content');
     if (el) el.innerHTML = renderContent();
     attachListeners();
+    if (state.activeTab === 'inventory') attachInventoryListeners();
 }
 
 function renderSidebar() {
@@ -63,6 +66,7 @@ function renderSidebar() {
                 ${isModuleActive('members')   ? nav('members',  ICONS.members,  'Mitglieder')  : ''}
                 ${isModuleActive('finance')   ? nav('finance',  ICONS.finance,  'Finanzen')    : ''}
                 ${isModuleActive('calendar')  ? nav('calendar', ICONS.calendar, 'Kalender')    : ''}
+                ${isModuleActive('inventory') ? nav('inventory', ICONS.inventory, 'Inventar')  : ''}
             </div>
 
             <div class="nav-section">
@@ -112,6 +116,7 @@ function renderContent() {
     return `<div class="content-scroll">${
         state.activeTab === 'overview'  ? renderOverview()  :
         state.activeTab === 'settings'  ? renderSettings()  :
+        state.activeTab === 'inventory' ? renderInventory() :
         renderFinance()
     }</div>`;
 }
@@ -125,6 +130,7 @@ function attachListeners() {
             if (state.activeTab === 'overview' && !state.overview && !state.overviewLoading) loadOverview();
             if (state.activeTab === 'calendar' && !state.calLoading) loadCalendarData();
             if (state.activeTab === 'finance' && !state.financeOverview && !state.financeOverviewLoading) loadFinanceOverview();
+            if (state.activeTab === 'inventory' && !state.inventoryData && !state.inventoryLoading) loadInventoryOverview();
             render();
         });
     });
@@ -321,6 +327,7 @@ initMembers(render, refreshContent);
 initOverview(render, refreshContent);
 initCalendar(render, refreshContent);
 initFinance(render, refreshContent);
+initInventory(render, refreshContent);
 initSettings(render, refreshContent);
 
 render();

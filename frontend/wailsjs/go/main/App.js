@@ -42,6 +42,10 @@ export function GetFinanceOverview(arg1) {
   return window['go']['main']['App']['GetFinanceOverview'](arg1);
 }
 
+export function GetInventoryOverview() {
+  return window['go']['main']['App']['GetInventoryOverview']();
+}
+
 export function GetInvoiceItems(arg1) {
   return window['go']['main']['App']['GetInvoiceItems'](arg1);
 }
@@ -60,6 +64,10 @@ export function GetSettings() {
 
 export function ReloadConfig() {
   return window['go']['main']['App']['ReloadConfig']();
+}
+
+export function ReloadInventory() {
+  return window['go']['main']['App']['ReloadInventory']();
 }
 
 export function ReloadMembers(arg1) {
