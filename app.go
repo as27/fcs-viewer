@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/as27/ageloader"
 	"github.com/as27/easyvapi"
@@ -16,7 +18,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.2"
+const AppVersion = "1.0.3"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -58,6 +60,42 @@ type Settings struct {
 	ActiveModules []string `json:"activeModules"`
 }
 
+// CachedData represents data stored in the disk cache with an expiration timestamp.
+type CachedData[T any] struct {
+	UpdatedAt string `json:"updatedAt"`
+	Data      T      `json:"data"`
+}
+
+// IsValid checks if the cached data is less than 1 week old.
+func (c CachedData[T]) IsValid() bool {
+	t, err := time.Parse(time.RFC3339, c.UpdatedAt)
+	if err != nil {
+		return false
+	}
+	return time.Since(t) < 7*24*time.Hour
+}
+
+func saveToDiskCache(filename string, data interface{}) error {
+	path := filepath.Join(configDir(), "cache", filename)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0644)
+}
+
+func loadFromDiskCache(filename string, dest interface{}) error {
+	path := filepath.Join(configDir(), "cache", filename)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, dest)
+}
+
 // App is the main Wails application struct.
 type App struct {
 	ctx    context.Context
@@ -67,9 +105,9 @@ type App struct {
 	extConf           *ExternalConfig
 	confErr           string
 	apiClient         *easyvapi.Client
-	memberCache       map[string][]MemberRow
-	invoiceCache      map[string][]InvoiceRow
-	inventoryCache    *InventoryOverview
+	memberCache       map[string]CachedData[[]MemberRow]
+	invoiceCache      map[string]CachedData[[]InvoiceRow]
+	inventoryCache    *CachedData[InventoryOverview]
 	activeModules     []string
 	activeDepartments []string
 }
@@ -77,8 +115,8 @@ type App struct {
 // NewApp creates a new App.
 func NewApp() *App {
 	return &App{
-		memberCache:  make(map[string][]MemberRow),
-		invoiceCache: make(map[string][]InvoiceRow),
+		memberCache:  make(map[string]CachedData[[]MemberRow]),
+		invoiceCache: make(map[string]CachedData[[]InvoiceRow]),
 	}
 }
 
@@ -115,8 +153,8 @@ func (a *App) ReloadConfig() Settings {
 		_ = a.loader.Invalidate(externalConfigURL)
 	}
 	a.mu.Lock()
-	a.memberCache = make(map[string][]MemberRow)
-	a.invoiceCache = make(map[string][]InvoiceRow)
+	a.memberCache = make(map[string]CachedData[[]MemberRow])
+	a.invoiceCache = make(map[string]CachedData[[]InvoiceRow])
 	a.inventoryCache = nil
 	a.mu.Unlock()
 

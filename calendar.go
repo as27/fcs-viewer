@@ -101,8 +101,9 @@ func (a *App) GetCalendarEvents(department string, year int, month int) ([]Calen
 	}
 
 	if department != "" {
-		members, err := a.GetMembers(department)
+		cachedMembers, err := a.GetMembers(department)
 		if err == nil {
+			members := cachedMembers.Data
 			monthStr := fmt.Sprintf("%02d", month)
 			for _, m := range members {
 				dob := m.DateOfBirth

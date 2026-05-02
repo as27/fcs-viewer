@@ -4,6 +4,12 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.3] - 2026-05-02
+
+### Hinzugefügt
+- **Disk-Caching**: Mitglieder-, Finanz- und Inventardaten werden nun für eine Woche unverschlüsselt lokal auf der Festplatte zwischengespeichert, um beim App-Start sofort verfügbar zu sein.
+- **Stand der Daten**: Tabellen für Mitglieder, offene Rechnungen und Inventar zeigen nun neben dem "Neu laden"-Button den exakten Zeitstempel der letzten Aktualisierung an (z. B. "Stand: 02.05.2026 08:00 Uhr").
+
 ## [1.0.2] - 2026-04-30
 
 ### Hinzugefügt

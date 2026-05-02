@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { esc, escHtml } from './utils.js';
+import { esc, escHtml, formatTimestamp } from './utils.js';
 import { GetMembers, ReloadMembers, ExportMembersExcel } from '../wailsjs/go/main/App';
 
 let _render, _refreshContent;
@@ -38,7 +38,11 @@ export function renderMembers() {
         </div>` : '';
 
     const tableHtml = rows.length === 0
-        ? `<div class="placeholder">${state.selectedDept ? 'Keine Mitglieder gefunden.' : 'Bitte eine Abteilung wählen.'}</div>`
+        ? `<div class="empty-state">
+             <div class="empty-state-icon">👥</div>
+             <div class="empty-state-title">${state.selectedDept ? (state.search ? 'Keine Treffer' : 'Keine Mitglieder') : 'Abteilung wählen'}</div>
+             <div class="empty-state-text">${state.selectedDept ? (state.search ? 'Die Suche ergab keine Treffer.' : 'Diese Abteilung hat noch keine Mitglieder.') : 'Bitte eine Abteilung in der Seitenleiste wählen.'}</div>
+           </div>`
         : `<table class="data-table">
             <thead><tr>
                 ${visibleCols.map(c => `
@@ -52,6 +56,8 @@ export function renderMembers() {
                 </tr>`).join('')}
             </tbody>
         </table>`;
+
+    const timestampHtml = state.membersUpdatedAt ? `<span class="timestamp">${esc(formatTimestamp(state.membersUpdatedAt))}</span>` : '';
 
     return `
         <div class="members-layout">
@@ -69,6 +75,7 @@ export function renderMembers() {
                         <path d="M4 5l3 3-3 3M9 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>Excel
                 </button>
+                ${timestampHtml}
                 ${state.error ? `<span class="err-msg">${esc(state.error)}</span>` : `<span class="status-count">${rows.length} Einträge</span>`}
             </div>
             <div class="card">
@@ -86,8 +93,9 @@ export async function loadMembers(force) {
     state.error = '';
     _render();
     try {
-        const rows = await (force ? ReloadMembers : GetMembers)(state.selectedDept);
-        state.members = rows || [];
+        const resp = await (force ? ReloadMembers : GetMembers)(state.selectedDept);
+        state.members = resp.data || [];
+        state.membersUpdatedAt = resp.updatedAt || '';
     } catch (e) {
         state.error = String(e);
         state.members = [];

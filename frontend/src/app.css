@@ -61,10 +61,10 @@
 
 .nav-item {
     display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: 6px;
+    padding: 10px 12px; border-radius: 6px;
     cursor: pointer;
     color: var(--sidebar-text);
-    font-size: 0.93rem; margin-bottom: 2px;
+    font-size: 0.93rem; margin-bottom: 4px;
     transition: background 0.12s;
     user-select: none;
 }
@@ -81,7 +81,8 @@
 
 .sidebar-footer {
     margin-top: auto;
-    padding: 12px 10px;
+    padding: 16px 12px;
+    background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -168,6 +169,14 @@
 
 .search-wrap input::placeholder { color: #aaa; }
 
+.clear-search-btn {
+    background: transparent; border: none;
+    color: #999; font-size: 1rem;
+    cursor: pointer; padding: 0 4px;
+    display: flex; align-items: center; justify-content: center;
+}
+.clear-search-btn:hover { color: #111; }
+
 /* ── Content ───────────────────────────────────────────────────────────────── */
 .content {
     flex: 1;
@@ -230,11 +239,15 @@
 .data-table { width: 100%; border-collapse: collapse; }
 
 .data-table th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     text-align: left;
     font-size: 0.71rem; font-weight: 600;
     color: #888; text-transform: uppercase; letter-spacing: 0.05em;
     padding: 7px 14px;
     border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
     background: #fafafa;
     cursor: pointer;
     user-select: none;
@@ -343,7 +356,7 @@
 .col-toggle-menu input[type=checkbox] { accent-color: var(--accent-dark); }
 
 .status-count { font-size: 0.79rem; color: #888; margin-left: auto; }
-
+.timestamp { font-size: 0.79rem; color: #888; font-weight: normal; opacity: 0.8; }
 /* ── Stat cards ────────────────────────────────────────────────────────────── */
 .stat-row {
     display: grid;
@@ -485,6 +498,32 @@
     flex: 1; gap: 10px;
     color: #999; font-size: 0.93rem;
     padding: 40px 0;
+}
+
+.empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 20px;
+    color: #888;
+    text-align: center;
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.07rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.empty-state-text {
+    font-size: 0.86rem;
+    max-width: 300px;
 }
 
 /* ── Spinner ───────────────────────────────────────────────────────────────── */

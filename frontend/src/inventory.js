@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { esc, formatDate } from './utils.js';
+import { esc, formatDate, formatTimestamp } from './utils.js';
 import { GetInventoryOverview, ReloadInventory } from '../wailsjs/go/main/App.js';
 
 let appRender = null;
@@ -22,6 +22,7 @@ export function renderInventory() {
             <button class="btn-primary" id="inv-reload-btn" ${state.inventoryLoading ? 'disabled' : ''}>
                 ${state.inventoryLoading ? '<span class="spinner"></span> Laden…' : 'Neu laden'}
             </button>
+            ${state.inventoryUpdatedAt ? `<span class="timestamp" style="margin-left:auto">${esc(formatTimestamp(state.inventoryUpdatedAt))}</span>` : ''}
         </div>
         ${renderInventoryContent()}
     `;
@@ -51,7 +52,12 @@ function renderInventoryContent() {
 }
 
 function renderItemsTable(items) {
-    if (items.length === 0) return '<div class="state-msg">Keine Inventar-Items gefunden.</div>';
+    if (items.length === 0) return `
+        <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div class="empty-state-title">Keine Items</div>
+            <div class="empty-state-text">Es wurden keine Inventar-Items gefunden.</div>
+        </div>`;
     
     const rows = items.map(item => `
         <tr>
@@ -65,7 +71,8 @@ function renderItemsTable(items) {
     `).join('');
 
     return `
-        <div class="card">
+        <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+            <div class="table-scroll">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -79,12 +86,18 @@ function renderItemsTable(items) {
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
+            </div>
         </div>
     `;
 }
 
 function renderGroupsTable(groups) {
-    if (groups.length === 0) return '<div class="state-msg">Keine Inventargruppen gefunden.</div>';
+    if (groups.length === 0) return `
+        <div class="empty-state">
+            <div class="empty-state-icon">🗂️</div>
+            <div class="empty-state-title">Keine Gruppen</div>
+            <div class="empty-state-text">Es wurden keine Inventargruppen gefunden.</div>
+        </div>`;
     
     const rows = groups.map(group => `
         <tr>
@@ -95,7 +108,8 @@ function renderGroupsTable(groups) {
     `).join('');
 
     return `
-        <div class="card">
+        <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+            <div class="table-scroll">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -106,12 +120,18 @@ function renderGroupsTable(groups) {
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
+            </div>
         </div>
     `;
 }
 
 function renderLocationsTable(locations) {
-    if (locations.length === 0) return '<div class="state-msg">Keine Orte gefunden.</div>';
+    if (locations.length === 0) return `
+        <div class="empty-state">
+            <div class="empty-state-icon">📍</div>
+            <div class="empty-state-title">Keine Orte</div>
+            <div class="empty-state-text">Es wurden keine Inventar-Orte gefunden.</div>
+        </div>`;
     
     const rows = locations.map(loc => `
         <tr>
@@ -123,7 +143,8 @@ function renderLocationsTable(locations) {
     `).join('');
 
     return `
-        <div class="card">
+        <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+            <div class="table-scroll">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -135,6 +156,7 @@ function renderLocationsTable(locations) {
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
+            </div>
         </div>
     `;
 }
@@ -150,13 +172,14 @@ export async function loadInventoryOverview(forceReload = false) {
     appRender();
 
     try {
-        let data;
+        let resp;
         if (forceReload) {
-            data = await ReloadInventory();
+            resp = await ReloadInventory();
         } else {
-            data = await GetInventoryOverview();
+            resp = await GetInventoryOverview();
         }
-        state.inventoryData = data;
+        state.inventoryData = resp.data || null;
+        state.inventoryUpdatedAt = resp.updatedAt || '';
     } catch (err) {
         state.inventoryError = String(err);
     } finally {

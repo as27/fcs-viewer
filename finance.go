@@ -156,30 +156,40 @@ func (a *App) GetBookings(bankAccountID int, dateFrom, dateTo string) ([]Booking
 }
 
 // GetOpenInvoices returns cached open invoices for the department, loading if needed.
-func (a *App) GetOpenInvoices(department string) ([]InvoiceRow, error) {
+func (a *App) GetOpenInvoices(department string) (CachedData[[]InvoiceRow], error) {
 	a.mu.RLock()
 	cached, ok := a.invoiceCache[department]
 	a.mu.RUnlock()
-	if ok {
+	if ok && cached.IsValid() {
 		return cached, nil
 	}
+
+	var diskCache CachedData[[]InvoiceRow]
+	err := loadFromDiskCache(fmt.Sprintf("invoices_%s.json", department), &diskCache)
+	if err == nil && diskCache.IsValid() {
+		a.mu.Lock()
+		a.invoiceCache[department] = diskCache
+		a.mu.Unlock()
+		return diskCache, nil
+	}
+
 	return a.loadOpenInvoices(department)
 }
 
 // ReloadOpenInvoices clears the cache for the department and fetches fresh data.
-func (a *App) ReloadOpenInvoices(department string) ([]InvoiceRow, error) {
+func (a *App) ReloadOpenInvoices(department string) (CachedData[[]InvoiceRow], error) {
 	a.mu.Lock()
 	delete(a.invoiceCache, department)
 	a.mu.Unlock()
 	return a.loadOpenInvoices(department)
 }
 
-func (a *App) loadOpenInvoices(department string) ([]InvoiceRow, error) {
+func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], error) {
 	a.mu.RLock()
 	client := a.apiClient
 	a.mu.RUnlock()
 	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert")
+		return CachedData[[]InvoiceRow]{}, fmt.Errorf("API-Client nicht initialisiert")
 	}
 
 	isFalse := false
@@ -187,13 +197,14 @@ func (a *App) loadOpenInvoices(department string) ([]InvoiceRow, error) {
 		IsTemplate: &isFalse,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Rechnungen konnten nicht geladen werden: %w", err)
+		return CachedData[[]InvoiceRow]{}, fmt.Errorf("Rechnungen konnten nicht geladen werden: %w", err)
 	}
 
-	members, err := a.GetMembers(department)
+	cachedMembers, err := a.GetMembers(department)
 	if err != nil {
-		return nil, fmt.Errorf("Mitglieder konnten nicht geladen werden: %w", err)
+		return CachedData[[]InvoiceRow]{}, fmt.Errorf("Mitglieder konnten nicht geladen werden: %w", err)
 	}
+	members := cachedMembers.Data
 
 	type namePair struct{ first, family string }
 	pairs := make([]namePair, 0, len(members))
@@ -238,11 +249,18 @@ func (a *App) loadOpenInvoices(department string) ([]InvoiceRow, error) {
 		})
 	}
 
+	res := CachedData[[]InvoiceRow]{
+		UpdatedAt: time.Now().Format(time.RFC3339),
+		Data:      rows,
+	}
+
 	a.mu.Lock()
-	a.invoiceCache[department] = rows
+	a.invoiceCache[department] = res
 	a.mu.Unlock()
 
-	return rows, nil
+	_ = saveToDiskCache(fmt.Sprintf("invoices_%s.json", department), res)
+
+	return res, nil
 }
 
 // GetInvoiceItems returns all line items for the given invoice ID.
@@ -326,12 +344,12 @@ func (a *App) GetFinanceOverview(department string) (FinanceOverview, error) {
 
 	var ov FinanceOverview
 
-	invoices, err := a.GetOpenInvoices(department)
+	cached, err := a.GetOpenInvoices(department)
 	if err == nil {
-		for _, inv := range invoices {
+		for _, inv := range cached.Data {
 			ov.OpenInvoices += inv.PaymentDifference
 		}
-		ov.InvoiceCount = len(invoices)
+		ov.InvoiceCount = len(cached.Data)
 	}
 
 	if conf != nil && client != nil {
