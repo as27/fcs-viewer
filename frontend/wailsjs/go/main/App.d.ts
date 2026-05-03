@@ -22,20 +22,20 @@ export function GetDepartments():Promise<Array<string>>;
 
 export function GetFinanceOverview(arg1:string):Promise<main.FinanceOverview>;
 
-export function GetInventoryOverview():Promise<main.InventoryOverview>;
+export function GetInventoryOverview():Promise<main.CachedData_main_InventoryOverview_>;
 
 export function GetInvoiceItems(arg1:number):Promise<Array<main.InvoiceItemRow>>;
 
-export function GetMembers(arg1:string):Promise<Array<main.MemberRow>>;
+export function GetMembers(arg1:string):Promise<main.CachedData___main_MemberRow_>;
 
-export function GetOpenInvoices(arg1:string):Promise<Array<main.InvoiceRow>>;
+export function GetOpenInvoices(arg1:string):Promise<main.CachedData___main_InvoiceRow_>;
 
 export function GetSettings():Promise<main.Settings>;
 
 export function ReloadConfig():Promise<main.Settings>;
 
-export function ReloadInventory():Promise<main.InventoryOverview>;
+export function ReloadInventory():Promise<main.CachedData_main_InventoryOverview_>;
 
-export function ReloadMembers(arg1:string):Promise<Array<main.MemberRow>>;
+export function ReloadMembers(arg1:string):Promise<main.CachedData___main_MemberRow_>;
 
-export function ReloadOpenInvoices(arg1:string):Promise<Array<main.InvoiceRow>>;
+export function ReloadOpenInvoices(arg1:string):Promise<main.CachedData___main_InvoiceRow_>;

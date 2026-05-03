@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"time"
 )
 
 // InventoryItemRow is a flat representation of an inventory item for the frontend.
@@ -45,33 +46,42 @@ type InventoryOverview struct {
 }
 
 // GetInventoryOverview returns the cached inventory data or fetches it if empty.
-func (a *App) GetInventoryOverview() (InventoryOverview, error) {
+func (a *App) GetInventoryOverview() (CachedData[InventoryOverview], error) {
 	a.mu.RLock()
 	cached := a.inventoryCache
 	a.mu.RUnlock()
 
-	if cached != nil {
+	if cached != nil && cached.IsValid() {
 		return *cached, nil
+	}
+
+	var diskCache CachedData[InventoryOverview]
+	err := loadFromDiskCache("inventory.json", &diskCache)
+	if err == nil && diskCache.IsValid() {
+		a.mu.Lock()
+		a.inventoryCache = &diskCache
+		a.mu.Unlock()
+		return diskCache, nil
 	}
 
 	return a.loadInventoryData()
 }
 
 // ReloadInventory clears the cache and fetches fresh inventory data.
-func (a *App) ReloadInventory() (InventoryOverview, error) {
+func (a *App) ReloadInventory() (CachedData[InventoryOverview], error) {
 	a.mu.Lock()
 	a.inventoryCache = nil
 	a.mu.Unlock()
 	return a.loadInventoryData()
 }
 
-func (a *App) loadInventoryData() (InventoryOverview, error) {
+func (a *App) loadInventoryData() (CachedData[InventoryOverview], error) {
 	a.mu.RLock()
 	client := a.apiClient
 	a.mu.RUnlock()
 
 	if client == nil {
-		return InventoryOverview{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+		return CachedData[InventoryOverview]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
 	}
 
 	var overview InventoryOverview
@@ -79,7 +89,7 @@ func (a *App) loadInventoryData() (InventoryOverview, error) {
 	// Fetch Locations
 	locations, err := client.Locations.ListAll(a.ctx, nil)
 	if err != nil {
-		return overview, fmt.Errorf("Orte konnten nicht geladen werden: %w", err)
+		return CachedData[InventoryOverview]{}, fmt.Errorf("Orte konnten nicht geladen werden: %w", err)
 	}
 
 	for _, loc := range locations {
@@ -97,7 +107,7 @@ func (a *App) loadInventoryData() (InventoryOverview, error) {
 	// Fetch Inventory Groups
 	groups, err := client.InventoryObjectGroups.ListAll(a.ctx, nil)
 	if err != nil {
-		return overview, fmt.Errorf("Inventargruppen konnten nicht geladen werden: %w", err)
+		return CachedData[InventoryOverview]{}, fmt.Errorf("Inventargruppen konnten nicht geladen werden: %w", err)
 	}
 
 	for _, g := range groups {
@@ -112,7 +122,7 @@ func (a *App) loadInventoryData() (InventoryOverview, error) {
 	// Fetch Inventory Objects
 	items, err := client.InventoryObjects.ListAll(a.ctx, nil)
 	if err != nil {
-		return overview, fmt.Errorf("Inventar-Items konnten nicht geladen werden: %w", err)
+		return CachedData[InventoryOverview]{}, fmt.Errorf("Inventar-Items konnten nicht geladen werden: %w", err)
 	}
 
 	for _, it := range items {
@@ -134,9 +144,16 @@ func (a *App) loadInventoryData() (InventoryOverview, error) {
 	sort.Slice(overview.Groups, func(i, j int) bool { return overview.Groups[i].Name < overview.Groups[j].Name })
 	sort.Slice(overview.Items, func(i, j int) bool { return overview.Items[i].Name < overview.Items[j].Name })
 
+	res := CachedData[InventoryOverview]{
+		UpdatedAt: time.Now().Format(time.RFC3339),
+		Data:      overview,
+	}
+
 	a.mu.Lock()
-	a.inventoryCache = &overview
+	a.inventoryCache = &res
 	a.mu.Unlock()
 
-	return overview, nil
+	_ = saveToDiskCache("inventory.json", res)
+
+	return res, nil
 }

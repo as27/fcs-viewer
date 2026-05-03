@@ -105,6 +105,7 @@ function renderTopbar() {
                 <div class="search-wrap">
                     ${ICONS.search}
                     <input id="search-input" placeholder="Suchen…" value="${esc(state.search)}">
+                    ${state.search ? `<button class="clear-search-btn" id="clear-search-btn">✕</button>` : ''}
                 </div>` : ''}
         </div>
     `;
@@ -113,11 +114,11 @@ function renderTopbar() {
 function renderContent() {
     if (state.activeTab === 'members')  return renderMembers();
     if (state.activeTab === 'calendar') return `<div class="cal-wrapper">${renderCalendar()}</div>`;
+    if (state.activeTab === 'finance')  return `<div class="members-layout">${renderFinance()}</div>`;
+    if (state.activeTab === 'inventory') return `<div class="members-layout">${renderInventory()}</div>`;
     return `<div class="content-scroll">${
         state.activeTab === 'overview'  ? renderOverview()  :
-        state.activeTab === 'settings'  ? renderSettings()  :
-        state.activeTab === 'inventory' ? renderInventory() :
-        renderFinance()
+        renderSettings()
     }</div>`;
 }
 
@@ -160,6 +161,11 @@ function attachListeners() {
         searchInput.addEventListener('input', e => { state.search = e.target.value; refreshContent(); });
         searchInput.focus();
         searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    }
+    
+    const clearBtn = document.getElementById('clear-search-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => { state.search = ''; refreshContent(); });
     }
 
     const finSearchInput = document.getElementById('finance-search-input');

@@ -107,36 +107,46 @@ func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
 }
 
 // GetMembers returns the cached members for the given department.
-// If the cache is empty, it fetches from the API.
-func (a *App) GetMembers(department string) ([]MemberRow, error) {
+// If the cache is empty or invalid, it tries the disk cache, then fetches from the API.
+func (a *App) GetMembers(department string) (CachedData[[]MemberRow], error) {
 	a.mu.RLock()
 	cached, ok := a.memberCache[department]
 	a.mu.RUnlock()
-	if ok {
+	if ok && cached.IsValid() {
 		return cached, nil
 	}
+
+	var diskCache CachedData[[]MemberRow]
+	err := loadFromDiskCache(fmt.Sprintf("members_%s.json", department), &diskCache)
+	if err == nil && diskCache.IsValid() {
+		a.mu.Lock()
+		a.memberCache[department] = diskCache
+		a.mu.Unlock()
+		return diskCache, nil
+	}
+
 	return a.loadMembers(department)
 }
 
 // ReloadMembers clears the cache and fetches fresh data from the API.
-func (a *App) ReloadMembers(department string) ([]MemberRow, error) {
+func (a *App) ReloadMembers(department string) (CachedData[[]MemberRow], error) {
 	a.mu.Lock()
 	delete(a.memberCache, department)
 	a.mu.Unlock()
 	return a.loadMembers(department)
 }
 
-func (a *App) loadMembers(department string) ([]MemberRow, error) {
+func (a *App) loadMembers(department string) (CachedData[[]MemberRow], error) {
 	a.mu.RLock()
 	conf := a.extConf
 	client := a.apiClient
 	a.mu.RUnlock()
 
 	if conf == nil {
-		return nil, fmt.Errorf("externe Konfiguration nicht geladen")
+		return CachedData[[]MemberRow]{}, fmt.Errorf("externe Konfiguration nicht geladen")
 	}
 	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+		return CachedData[[]MemberRow]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
 	}
 
 	var dept *Department
@@ -147,12 +157,12 @@ func (a *App) loadMembers(department string) ([]MemberRow, error) {
 		}
 	}
 	if dept == nil {
-		return nil, fmt.Errorf("Abteilung '%s' nicht gefunden", department)
+		return CachedData[[]MemberRow]{}, fmt.Errorf("Abteilung '%s' nicht gefunden", department)
 	}
 
 	groupIDs, err := a.resolveGroupIDs(dept.GroupIDs)
 	if err != nil {
-		return nil, fmt.Errorf("Gruppen konnten nicht aufgelöst werden: %w", err)
+		return CachedData[[]MemberRow]{}, fmt.Errorf("Gruppen konnten nicht aufgelöst werden: %w", err)
 	}
 
 	seen := make(map[int]bool)
@@ -163,7 +173,7 @@ func (a *App) loadMembers(department string) ([]MemberRow, error) {
 		}
 		members, err := client.Members.ListAll(a.ctx, opts)
 		if err != nil {
-			return nil, fmt.Errorf("Mitglieder für Gruppe %d konnten nicht geladen werden: %w", gid, err)
+			return CachedData[[]MemberRow]{}, fmt.Errorf("Mitglieder für Gruppe %d konnten nicht geladen werden: %w", gid, err)
 		}
 		today := time.Now().Format("2006-01-02")
 		for _, m := range members {
@@ -177,11 +187,18 @@ func (a *App) loadMembers(department string) ([]MemberRow, error) {
 		}
 	}
 
+	res := CachedData[[]MemberRow]{
+		UpdatedAt: time.Now().Format(time.RFC3339),
+		Data:      rows,
+	}
+
 	a.mu.Lock()
-	a.memberCache[department] = rows
+	a.memberCache[department] = res
 	a.mu.Unlock()
 
-	return rows, nil
+	_ = saveToDiskCache(fmt.Sprintf("members_%s.json", department), res)
+
+	return res, nil
 }
 
 // resolveGroupIDs maps short names to easyvapi integer group IDs.
@@ -211,10 +228,11 @@ func (a *App) resolveGroupIDs(shorts []string) ([]int, error) {
 
 // ExportMembersExcel exports all members of the given department as an Excel file.
 func (a *App) ExportMembersExcel(department string) (string, error) {
-	members, err := a.GetMembers(department)
+	cached, err := a.GetMembers(department)
 	if err != nil {
 		return "", err
 	}
+	members := cached.Data
 
 	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Mitgliederliste exportieren",

@@ -4,6 +4,7 @@ export const state = {
     departments: [],
     selectedDept: '',
     members: [],
+    membersUpdatedAt: '',
     loading: false,
     configLoading: false,
     error: '',
@@ -26,6 +27,7 @@ export const state = {
     calView: 'month',
     inventoryTab: 'items', // 'items', 'groups', 'locations'
     inventoryData: null,
+    inventoryUpdatedAt: '',
     inventoryLoading: false,
     inventoryError: '',
     financeTab: 'overview',
@@ -43,6 +45,7 @@ export const state = {
     financeBookingDateFrom: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })(),
     financeBookingDateTo: new Date().toISOString().slice(0,10),
     financeInvoices: [],
+    financeInvoicesUpdatedAt: '',
     financeInvoicesLoading: false,
     financeInvoicesError: '',
     financeInvoiceSearch: '',

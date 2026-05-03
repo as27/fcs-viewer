@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { esc, escHtml, formatDate } from './utils.js';
+import { esc, escHtml, formatDate, formatTimestamp, ICONS } from './utils.js';
 import { isModuleActive } from './settings.js';
 import { GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
 
@@ -157,7 +157,11 @@ function renderFinanceAccounts() {
     }
     if (!state.financeAccounts || state.financeAccounts.length === 0) {
         return `<div class="card"><div class="card-header"><span class="card-title">Bankkonten</span></div>
-            <div class="placeholder" style="padding:40px">Keine Bankkonten für diese Abteilung konfiguriert.</div></div>`;
+            <div class="empty-state">
+                <div class="empty-state-icon">🏦</div>
+                <div class="empty-state-title">Keine Bankkonten</div>
+                <div class="empty-state-text">Für diese Abteilung sind keine Bankkonten konfiguriert.</div>
+            </div></div>`;
     }
 
     const accs = state.financeAccounts;
@@ -193,7 +197,13 @@ function renderFinanceAccounts() {
         }).join('');
 
         const empty = filtered.length === 0
-            ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#888">Keine Buchungen gefunden.</td></tr>'
+            ? `<tr><td colspan="4" style="padding:0">
+                 <div class="empty-state" style="padding: 40px 20px">
+                   <div class="empty-state-icon">💸</div>
+                   <div class="empty-state-title">${state.financeBookings.length === 0 ? 'Keine Buchungen' : 'Keine Treffer'}</div>
+                   <div class="empty-state-text">${state.financeBookings.length === 0 ? 'In diesem Zeitraum wurden keine Buchungen gefunden.' : 'Die Suche ergab keine Treffer.'}</div>
+                 </div>
+               </td></tr>`
             : '';
 
         bookingsSection = `
@@ -208,7 +218,7 @@ function renderFinanceAccounts() {
     }
 
     return `
-        <div class="card">
+        <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
             <div class="card-header">
                 <span class="card-title">Bankkonten</span>
                 <select class="dept-select" onchange="setFinanceAccount(parseInt(this.value))" style="margin-left:auto">
@@ -227,10 +237,12 @@ function renderFinanceAccounts() {
                 <input type="date" class="search-input" style="width:140px" value="${state.financeBookingDateTo}"
                     onchange="setFinanceDateTo(this.value)">
                 <button class="btn-primary" onclick="loadFinanceBookings()">Laden</button>
-                <div style="margin-left:auto;position:relative">
-                    <input id="finance-search-input" type="text" class="search-input"
+                <div class="search-wrap" style="width:260px; margin-left:auto">
+                    ${ICONS.search}
+                    <input id="finance-search-input" type="text"
                         placeholder="Suche Empfänger / Beschreibung…"
-                        style="width:220px" value="${escHtml(state.financeBookingSearch || '')}">
+                        value="${escHtml(state.financeBookingSearch || '')}">
+                    ${state.financeBookingSearch ? `<button class="clear-search-btn" id="clear-finance-search-btn">✕</button>` : ''}
                 </div>
             </div>
             ${bookingsSection}
@@ -321,13 +333,20 @@ function renderFinanceInvoices() {
     }).join('');
 
     const empty = filtered.length === 0
-        ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">${state.financeInvoices.length === 0 ? 'Keine offenen Rechnungen.' : 'Keine Treffer.'}</td></tr>`
+        ? `<tr><td colspan="6" style="padding:0">
+             <div class="empty-state" style="padding: 40px 20px">
+               <div class="empty-state-icon">🧾</div>
+               <div class="empty-state-title">${state.financeInvoices.length === 0 ? 'Keine offenen Rechnungen' : 'Keine Treffer'}</div>
+               <div class="empty-state-text">${state.financeInvoices.length === 0 ? 'Es gibt aktuell keine offenen Rechnungen für diese Abteilung.' : 'Die Suche ergab keine Treffer.'}</div>
+             </div>
+           </td></tr>`
         : '';
 
     return `
-        <div class="card">
+        <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
             <div class="card-header">
                 <span class="card-title">Offene Rechnungen</span>
+                ${state.financeInvoicesUpdatedAt ? `<span class="timestamp" style="margin-left:16px">${escHtml(formatTimestamp(state.financeInvoicesUpdatedAt))}</span>` : ''}
                 <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
             </div>
             <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
@@ -335,10 +354,12 @@ function renderFinanceInvoices() {
                     <strong class="amount-neg" style="font-size:1.14rem">${totalOpenFmt}</strong>
                     <span style="color:#888;font-size:0.86rem;margin-left:6px">(${filtered.length} Rechnung${filtered.length !== 1 ? 'en' : ''})</span>
                 </div>
-                <div style="margin-left:auto">
-                    <input id="invoice-search-input" type="text" class="search-input"
+                <div class="search-wrap" style="width:280px; margin-left:auto">
+                    ${ICONS.search}
+                    <input id="invoice-search-input" type="text"
                         placeholder="Suche Name / Nr. / Beschreibung…"
-                        style="width:240px" value="${escHtml(state.financeInvoiceSearch || '')}">
+                        value="${escHtml(state.financeInvoiceSearch || '')}">
+                    ${state.financeInvoiceSearch ? `<button class="clear-search-btn" id="clear-invoice-search-btn">✕</button>` : ''}
                 </div>
             </div>
             <div class="table-scroll">
@@ -533,8 +554,9 @@ function loadInvoices(forceReload) {
     _render();
     const fn = forceReload ? ReloadOpenInvoices : GetOpenInvoices;
     fn(state.selectedDept)
-        .then(rows => {
-            state.financeInvoices = rows || [];
+        .then(resp => {
+            state.financeInvoices = resp.data || [];
+            state.financeInvoicesUpdatedAt = resp.updatedAt || '';
             state.financeInvoicesLoading = false;
             if (forceReload) state.financeOverview = null;
             _render();

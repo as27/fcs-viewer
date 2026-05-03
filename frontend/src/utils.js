@@ -26,6 +26,15 @@ export function formatDate(iso) {
     return `${d}.${m}.${y}`;
 }
 
+export function formatTimestamp(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return `Stand: ${dateStr} ${timeStr} Uhr`;
+}
+
 export const ICONS = {
     overview: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
         <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".8"/>
