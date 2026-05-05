@@ -310,6 +310,188 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class ProtocolRow {
+	    id: number;
+	    name: string;
+	    description: string;
+	    locationName: string;
+	    start: string;
+	    end: string;
+	    meetingLeader: string;
+	    meetingSecretary: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProtocolRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.locationName = source["locationName"];
+	        this.start = source["start"];
+	        this.end = source["end"];
+	        this.meetingLeader = source["meetingLeader"];
+	        this.meetingSecretary = source["meetingSecretary"];
+	    }
+	}
+	export class ProtocolOverview {
+	    protocols: ProtocolRow[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ProtocolOverview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.protocols = this.convertValues(source["protocols"], ProtocolRow);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class CachedData_main_ProtocolOverview_ {
+	    updatedAt: string;
+	    data: ProtocolOverview;
+	
+	    static createFrom(source: any = {}) {
+	        return new CachedData_main_ProtocolOverview_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.updatedAt = source["updatedAt"];
+	        this.data = this.convertValues(source["data"], ProtocolOverview);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class TaskRow {
+	    id: number;
+	    name: string;
+	    description: string;
+	    due: string;
+	    state: string;
+	    public: boolean;
+	    member: string;
+	    taskGroup: string;
+	    taskGroupID: number;
+	    parentEvent: string;
+	    parentEventID: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TaskRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.due = source["due"];
+	        this.state = source["state"];
+	        this.public = source["public"];
+	        this.member = source["member"];
+	        this.taskGroup = source["taskGroup"];
+	        this.taskGroupID = source["taskGroupID"];
+	        this.parentEvent = source["parentEvent"];
+	        this.parentEventID = source["parentEventID"];
+	    }
+	}
+	export class TaskOverview {
+	    tasks: TaskRow[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TaskOverview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.tasks = this.convertValues(source["tasks"], TaskRow);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class CachedData_main_TaskOverview_ {
+	    updatedAt: string;
+	    data: TaskOverview;
+	
+	    static createFrom(source: any = {}) {
+	        return new CachedData_main_TaskOverview_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.updatedAt = source["updatedAt"];
+	        this.data = this.convertValues(source["data"], TaskOverview);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class CalendarEvent {
 	    id: number;
 	    name: string;
@@ -459,6 +641,8 @@ export namespace main {
 	
 	
 	
+	
+	
 	export class Settings {
 	    version: string;
 	    publicKey: string;
@@ -483,6 +667,56 @@ export namespace main {
 	        this.activeModules = source["activeModules"];
 	    }
 	}
+	export class TaskMetadataItem {
+	    id: number;
+	    name: string;
+	    date?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TaskMetadataItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.date = source["date"];
+	    }
+	}
+	export class TaskMetadata {
+	    taskGroups: TaskMetadataItem[];
+	    events: TaskMetadataItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TaskMetadata(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.taskGroups = this.convertValues(source["taskGroups"], TaskMetadataItem);
+	        this.events = this.convertValues(source["events"], TaskMetadataItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	
 
 }
 

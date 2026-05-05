@@ -65,6 +65,15 @@ export const ICONS = {
         <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M2 7h12M6 3v10" stroke="currentColor" stroke-width="1.5"/>
     </svg>`,
+    tasks: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M5 5h6M5 8h6M5 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`,
+    protocols: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+        <path d="M3 1h7l3 3v11H3V1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M10 1v3h3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M5 7h6M5 10h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>`,
     settings: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
         <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -72,5 +81,11 @@ export const ICONS = {
     search: `<svg width="12" height="12" viewBox="0 0 16 16" fill="none">
         <circle cx="7" cy="7" r="5" stroke="#aaa" stroke-width="1.5"/>
         <path d="M11 11l3 3" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`,
+    edit: `<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M11 2l3 3-9 9H2v-3l9-9z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+    plus: `<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     </svg>`,
 };

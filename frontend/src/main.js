@@ -9,6 +9,8 @@ import { renderOverview, loadOverview, init as initOverview } from './overview.j
 import { renderCalendar, loadCalendarData, loadCalendarEvents, init as initCalendar } from './calendar.js';
 import { renderFinance, renderCashPaymentModal, attachCashPaymentListeners, loadFinanceOverview, loadFinanceAccounts, init as initFinance } from './finance.js';
 import { renderInventory, loadInventoryOverview, attachInventoryListeners, init as initInventory } from './inventory.js';
+import { renderTasks, loadTasksOverview, attachTasksListeners, init as initTasks } from './tasks.js';
+import { renderProtocols, loadProtocolsOverview, attachProtocolsListeners, init as initProtocols } from './protocols.js';
 import { renderSettings, isModuleActive, loadSettings, doReloadConfig, doExportPublicKey, applyActiveModules, init as initSettings } from './settings.js';
 
 applyFontSize(getFontSize());
@@ -30,6 +32,8 @@ function render() {
     attachListeners();
     attachCashPaymentListeners();
     if (state.activeTab === 'inventory') attachInventoryListeners();
+    if (state.activeTab === 'tasks') attachTasksListeners();
+    if (state.activeTab === 'protocols') attachProtocolsListeners();
 }
 
 function refreshContent() {
@@ -37,6 +41,8 @@ function refreshContent() {
     if (el) el.innerHTML = renderContent();
     attachListeners();
     if (state.activeTab === 'inventory') attachInventoryListeners();
+    if (state.activeTab === 'tasks') attachTasksListeners();
+    if (state.activeTab === 'protocols') attachProtocolsListeners();
 }
 
 function renderSidebar() {
@@ -67,6 +73,8 @@ function renderSidebar() {
                 ${isModuleActive('finance')   ? nav('finance',  ICONS.finance,  'Finanzen')    : ''}
                 ${isModuleActive('calendar')  ? nav('calendar', ICONS.calendar, 'Kalender')    : ''}
                 ${isModuleActive('inventory') ? nav('inventory', ICONS.inventory, 'Inventar')  : ''}
+                ${isModuleActive('tasks')     ? nav('tasks',     ICONS.tasks,     'Aufgaben')  : ''}
+                ${isModuleActive('protocols') ? nav('protocols', ICONS.protocols, 'Protokolle'): ''}
             </div>
 
             <div class="nav-section">
@@ -116,6 +124,8 @@ function renderContent() {
     if (state.activeTab === 'calendar') return `<div class="cal-wrapper">${renderCalendar()}</div>`;
     if (state.activeTab === 'finance')  return `<div class="members-layout">${renderFinance()}</div>`;
     if (state.activeTab === 'inventory') return `<div class="members-layout">${renderInventory()}</div>`;
+    if (state.activeTab === 'tasks') return `<div class="members-layout">${renderTasks()}</div>`;
+    if (state.activeTab === 'protocols') return `<div class="members-layout">${renderProtocols()}</div>`;
     return `<div class="content-scroll">${
         state.activeTab === 'overview'  ? renderOverview()  :
         renderSettings()
@@ -132,6 +142,8 @@ function attachListeners() {
             if (state.activeTab === 'calendar' && !state.calLoading) loadCalendarData();
             if (state.activeTab === 'finance' && !state.financeOverview && !state.financeOverviewLoading) loadFinanceOverview();
             if (state.activeTab === 'inventory' && !state.inventoryData && !state.inventoryLoading) loadInventoryOverview();
+            if (state.activeTab === 'tasks' && !state.tasksData && !state.tasksLoading) loadTasksOverview();
+            if (state.activeTab === 'protocols' && !state.protocolsData && !state.protocolsLoading) loadProtocolsOverview();
             render();
         });
     });
@@ -334,6 +346,8 @@ initOverview(render, refreshContent);
 initCalendar(render, refreshContent);
 initFinance(render, refreshContent);
 initInventory(render, refreshContent);
+initTasks(render, refreshContent);
+initProtocols(render, refreshContent);
 initSettings(render, refreshContent);
 
 render();
