@@ -58,8 +58,20 @@ export function GetOpenInvoices(arg1) {
   return window['go']['main']['App']['GetOpenInvoices'](arg1);
 }
 
+export function GetProtocolsOverview() {
+  return window['go']['main']['App']['GetProtocolsOverview']();
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
+}
+
+export function GetTaskMetadata() {
+  return window['go']['main']['App']['GetTaskMetadata']();
+}
+
+export function GetTasksOverview() {
+  return window['go']['main']['App']['GetTasksOverview']();
 }
 
 export function ReloadConfig() {
@@ -76,4 +88,16 @@ export function ReloadMembers(arg1) {
 
 export function ReloadOpenInvoices(arg1) {
   return window['go']['main']['App']['ReloadOpenInvoices'](arg1);
+}
+
+export function ReloadProtocols() {
+  return window['go']['main']['App']['ReloadProtocols']();
+}
+
+export function ReloadTasks() {
+  return window['go']['main']['App']['ReloadTasks']();
+}
+
+export function SaveTask(arg1) {
+  return window['go']['main']['App']['SaveTask'](arg1);
 }

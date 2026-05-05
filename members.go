@@ -63,21 +63,20 @@ func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
 	}
 
 	allGroups, err := client.MemberGroups.ListAll(a.ctx, nil)
+	// If groups cannot be loaded, we still want to show the departments from the config.
 	if err != nil {
-		return nil, fmt.Errorf("Gruppen konnten nicht geladen werden: %w", err)
+		allGroups = nil
 	}
 
 	byShort := make(map[string]struct {
-		ID          int
-		Name        string
-		Description string
+		ID   int
+		Name string
 	}, len(allGroups))
 	for _, g := range allGroups {
 		byShort[g.Short] = struct {
-			ID          int
-			Name        string
-			Description string
-		}{g.ID, g.Name, g.Description}
+			ID   int
+			Name string
+		}{g.ID, g.Name}
 	}
 
 	result := make([]DepartmentDetail, 0, len(conf.Departments))
@@ -86,10 +85,9 @@ func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
 		for _, short := range dept.GroupIDs {
 			if g, ok := byShort[short]; ok {
 				groups = append(groups, GroupDetail{
-					ID:          g.ID,
-					Short:       short,
-					Name:        g.Name,
-					Description: g.Description,
+					ID:    g.ID,
+					Short: short,
+					Name:  g.Name,
 				})
 			} else {
 				groups = append(groups, GroupDetail{
@@ -99,6 +97,10 @@ func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
 			}
 		}
 		result = append(result, DepartmentDetail{Name: dept.Name, Groups: groups})
+	}
+
+	if len(result) == 0 {
+		// This should only happen if conf.Departments is empty.
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Name < result[j].Name

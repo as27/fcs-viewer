@@ -4,7 +4,16 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
-## [1.0.3] - 2026-05-02
+## [1.0.4] - 2026-05-05
+
+### Hinzugefügt
+- **Aufgaben-Bearbeitung**: Aufgaben können nun direkt in der App bearbeitet und neu angelegt werden.
+- **Aufgaben-Details**: Unterstützung für Aufgabengruppen und verknüpfte Kalender-Termine im Erstellungs- und Bearbeitungsformular.
+- **Vorschau-Funktion**: Vor dem endgültigen Speichern einer Aufgabe wird eine Zusammenfassung zur Kontrolle angezeigt.
+
+### Geändert
+- **Verbessertes API-Debugging**: Detailliertes Logging für API-Anfragen zur schnelleren Diagnose von Berechtigungs- und Strukturproblemen.
+- **Token-Refresh**: Case-insensitive Prüfung des `TokenRefreshNeeded`-Headers in `easyvapi` für zuverlässigere automatische Token-Erneuerung.
 
 ### Hinzugefügt
 - **Disk-Caching**: Mitglieder-, Finanz- und Inventardaten werden nun für eine Woche unverschlüsselt lokal auf der Festplatte zwischengespeichert, um beim App-Start sofort verfügbar zu sein.

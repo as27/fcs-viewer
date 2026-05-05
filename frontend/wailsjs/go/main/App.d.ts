@@ -30,7 +30,13 @@ export function GetMembers(arg1:string):Promise<main.CachedData___main_MemberRow
 
 export function GetOpenInvoices(arg1:string):Promise<main.CachedData___main_InvoiceRow_>;
 
+export function GetProtocolsOverview():Promise<main.CachedData_main_ProtocolOverview_>;
+
 export function GetSettings():Promise<main.Settings>;
+
+export function GetTaskMetadata():Promise<main.TaskMetadata>;
+
+export function GetTasksOverview():Promise<main.CachedData_main_TaskOverview_>;
 
 export function ReloadConfig():Promise<main.Settings>;
 
@@ -39,3 +45,9 @@ export function ReloadInventory():Promise<main.CachedData_main_InventoryOverview
 export function ReloadMembers(arg1:string):Promise<main.CachedData___main_MemberRow_>;
 
 export function ReloadOpenInvoices(arg1:string):Promise<main.CachedData___main_InvoiceRow_>;
+
+export function ReloadProtocols():Promise<main.CachedData_main_ProtocolOverview_>;
+
+export function ReloadTasks():Promise<main.CachedData_main_TaskOverview_>;
+
+export function SaveTask(arg1:main.TaskRow):Promise<main.CachedData_main_TaskOverview_>;

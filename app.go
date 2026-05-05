@@ -18,7 +18,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.3"
+const AppVersion = "1.0.4"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -47,6 +47,56 @@ type Department struct {
 	Name           string   `yaml:"name"`
 	GroupIDs       []string `yaml:"group_ids"`
 	BankAccountIDs []int    `yaml:"bank_account_ids"`
+}
+
+// TaskRow is a flat representation of a task for the frontend.
+type TaskRow struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Due           string `json:"due"`
+	State         string `json:"state"`
+	Public        bool   `json:"public"`
+	Member        string `json:"member"`        // URL or name
+	TaskGroup     string `json:"taskGroup"`     // URL or name
+	TaskGroupID   int    `json:"taskGroupID"`   // ID for selection
+	ParentEvent   string `json:"parentEvent"`   // URL or name
+	ParentEventID int    `json:"parentEventID"` // ID for selection
+}
+
+// TaskMetadataItem is used for dropdown selections.
+type TaskMetadataItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Date string `json:"date,omitempty"`
+}
+
+// TaskMetadata holds lists for task form selections.
+type TaskMetadata struct {
+	TaskGroups []TaskMetadataItem `json:"taskGroups"`
+	Events     []TaskMetadataItem `json:"events"`
+}
+
+// ProtocolRow is a flat representation of a protocol for the frontend.
+type ProtocolRow struct {
+	ID               int    `json:"id"`
+	Name             string `json:"name"`
+	Description      string `json:"description"`
+	LocationName     string `json:"locationName"`
+	Start            string `json:"start"`
+	End              string `json:"end"`
+	MeetingLeader    string `json:"meetingLeader"`
+	MeetingSecretary string `json:"meetingSecretary"`
+}
+
+// TaskOverview holds aggregated task data.
+type TaskOverview struct {
+	Tasks []TaskRow `json:"tasks"`
+}
+
+// ProtocolOverview holds aggregated protocol data.
+type ProtocolOverview struct {
+	Protocols []ProtocolRow `json:"protocols"`
 }
 
 // Settings holds the current app settings for the frontend.
@@ -108,6 +158,8 @@ type App struct {
 	memberCache       map[string]CachedData[[]MemberRow]
 	invoiceCache      map[string]CachedData[[]InvoiceRow]
 	inventoryCache    *CachedData[InventoryOverview]
+	taskCache         *CachedData[TaskOverview]
+	protocolCache     *CachedData[ProtocolOverview]
 	activeModules     []string
 	activeDepartments []string
 }
@@ -156,6 +208,8 @@ func (a *App) ReloadConfig() Settings {
 	a.memberCache = make(map[string]CachedData[[]MemberRow])
 	a.invoiceCache = make(map[string]CachedData[[]InvoiceRow])
 	a.inventoryCache = nil
+	a.taskCache = nil
+	a.protocolCache = nil
 	a.mu.Unlock()
 
 	a.loadExternalConfig()
