@@ -50,6 +50,7 @@ export const state = {
     financeInvoicesError: '',
     financeInvoiceSearch: '',
     expandedInvoiceID: null,
+    expandedInvoices: {},
     invoiceItems: {},
     invoiceItemsLoading: {},
     cashPaymentModal: null,

@@ -4,6 +4,16 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.5] - 2026-05-21
+
+### Hinzugefügt
+- **Offene Rechnungen Excel-Export**: Excel-Export für offene Rechnungen analog zum Mitglieder-Export implementiert.
+- **Alle auf-/zuklappen**: Button zum gleichzeitigen Auf- und Zuklappen aller offenen Rechnungen hinzugefügt, inklusive parallelem Laden aller Einzelpositionen.
+
+### Geändert
+- **Scrollposition stabilisiert**: Scrollposition beim Klick auf offene Rechnungen zur Anzeige von Einzelpositionen bleibt stabil und springt nicht mehr nach oben.
+- **Dynamisches Konfigurations-Reloading**: Vor jedem easyVerein API-Abruf wird automatisch die verschlüsselte externe Konfiguration neu geladen. Dies stellt sicher, dass die App bei jedem Aufruf garantiert den aktuellsten API-Key verwendet.
+
 ## [1.0.4] - 2026-05-05
 
 ### Hinzugefügt

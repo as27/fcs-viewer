@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { esc, escHtml, formatDate, formatTimestamp, ICONS } from './utils.js';
 import { isModuleActive } from './settings.js';
-import { GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment } from '../wailsjs/go/main/App';
+import { GetBankAccounts, GetBookings, GetOpenInvoices, ReloadOpenInvoices, GetFinanceOverview, GetInvoiceItems, CreateCashPayment, ExportInvoicesExcel } from '../wailsjs/go/main/App';
 
 const FINANCE_TABS = ['overview', 'accounts', 'invoices'];
 const FINANCE_TAB_LABELS = { overview: 'Übersicht', accounts: 'Bankkonten', invoices: 'Offene Rechnungen' };
@@ -12,6 +12,20 @@ export function init(render, refreshContent) {
     _render = render;
     _refreshContent = refreshContent;
     registerWindowFunctions();
+}
+
+function renderPreservingScroll() {
+    const scrollContainer = document.querySelector('.table-scroll');
+    const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+
+    _render();
+
+    const newScrollContainer = document.querySelector('.table-scroll');
+    if (newScrollContainer) {
+        newScrollContainer.scrollTop = scrollTop;
+        newScrollContainer.scrollLeft = scrollLeft;
+    }
 }
 
 function registerWindowFunctions() {
@@ -43,28 +57,98 @@ function registerWindowFunctions() {
     window.loadInvoices = function() { loadInvoices(true); };
 
     window.toggleInvoiceItems = function(invoiceID) {
-        if (state.expandedInvoiceID === invoiceID) {
-            state.expandedInvoiceID = null;
-            _render();
+        if (!state.expandedInvoices) {
+            state.expandedInvoices = {};
+        }
+        if (state.expandedInvoices[invoiceID]) {
+            delete state.expandedInvoices[invoiceID];
+            renderPreservingScroll();
             return;
         }
-        state.expandedInvoiceID = invoiceID;
+        state.expandedInvoices[invoiceID] = true;
         if (!state.invoiceItems[invoiceID]) {
             state.invoiceItemsLoading[invoiceID] = true;
-            _render();
+            renderPreservingScroll();
             GetInvoiceItems(invoiceID)
                 .then(items => {
                     state.invoiceItems[invoiceID] = items || [];
                     state.invoiceItemsLoading[invoiceID] = false;
-                    _render();
+                    renderPreservingScroll();
                 })
                 .catch(() => {
                     state.invoiceItems[invoiceID] = [];
                     state.invoiceItemsLoading[invoiceID] = false;
-                    _render();
+                    renderPreservingScroll();
                 });
         } else {
-            _render();
+            renderPreservingScroll();
+        }
+    };
+
+    window.toggleAllInvoiceItems = function() {
+        if (!state.expandedInvoices) {
+            state.expandedInvoices = {};
+        }
+        
+        const search = (state.financeInvoiceSearch || '').toLowerCase();
+        const filtered = (state.financeInvoices || []).filter(inv => {
+            if (!search) return true;
+            return (inv.receiver || '').toLowerCase().includes(search) ||
+                   (inv.invNumber || '').toLowerCase().includes(search) ||
+                   (inv.description || '').toLowerCase().includes(search);
+        });
+
+        const allExpanded = filtered.length > 0 && filtered.every(inv => state.expandedInvoices[inv.id]);
+        
+        if (allExpanded) {
+            filtered.forEach(inv => {
+                delete state.expandedInvoices[inv.id];
+            });
+            renderPreservingScroll();
+        } else {
+            const toFetch = [];
+            filtered.forEach(inv => {
+                state.expandedInvoices[inv.id] = true;
+                if (!state.invoiceItems[inv.id] && !state.invoiceItemsLoading[inv.id]) {
+                    state.invoiceItemsLoading[inv.id] = true;
+                    toFetch.push(inv.id);
+                }
+            });
+            
+            renderPreservingScroll();
+            
+            if (toFetch.length > 0) {
+                Promise.all(toFetch.map(id => 
+                    GetInvoiceItems(id)
+                        .then(items => {
+                            state.invoiceItems[id] = items || [];
+                            state.invoiceItemsLoading[id] = false;
+                        })
+                        .catch(() => {
+                            state.invoiceItems[id] = [];
+                            state.invoiceItemsLoading[id] = false;
+                        })
+                )).then(() => {
+                    renderPreservingScroll();
+                });
+            }
+        }
+    };
+
+    window.doInvoiceExportExcel = async function() {
+        if (!state.selectedDept) return;
+        try {
+            const path = await ExportInvoicesExcel(state.selectedDept);
+            if (path) {
+                const btn = document.getElementById('invoice-excel-export-btn');
+                if (btn) {
+                    const prev = btn.innerHTML;
+                    btn.textContent = 'Gespeichert!';
+                    setTimeout(() => { btn.innerHTML = prev; }, 2000);
+                }
+            }
+        } catch (e) {
+            alert('Excel-Export fehlgeschlagen: ' + String(e));
         }
     };
 
@@ -269,10 +353,13 @@ function renderFinanceInvoices() {
     const totalOpen = filtered.reduce((s, inv) => s + inv.paymentDifference, 0);
     const totalOpenFmt = totalOpen.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
+    const allExpanded = filtered.length > 0 && filtered.every(inv => state.expandedInvoices && state.expandedInvoices[inv.id]);
+    const toggleAllLabel = allExpanded ? 'Alle zuklappen' : 'Alle aufklappen';
+
     const rows = filtered.flatMap(inv => {
         const diffFmt = inv.paymentDifference.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
         const totalFmt = inv.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-        const isExpanded = state.expandedInvoiceID === inv.id;
+        const isExpanded = !!(state.expandedInvoices && state.expandedInvoices[inv.id]);
         const isLoading = state.invoiceItemsLoading[inv.id];
         const expandIcon = isExpanded ? '▾' : '▸';
 
@@ -348,6 +435,15 @@ function renderFinanceInvoices() {
                 <span class="card-title">Offene Rechnungen</span>
                 ${state.financeInvoicesUpdatedAt ? `<span class="timestamp" style="margin-left:16px">${escHtml(formatTimestamp(state.financeInvoicesUpdatedAt))}</span>` : ''}
                 <button class="btn-primary" style="margin-left:auto" onclick="loadInvoices()">Neu laden</button>
+                <button class="btn-ghost" onclick="toggleAllInvoiceItems()" ${state.financeInvoicesLoading || filtered.length === 0 ? 'disabled' : ''} style="margin-left:8px; color: #fff; border-color: rgba(255,255,255,0.25);">
+                    ${allExpanded ? '▲' : '▼'} ${toggleAllLabel}
+                </button>
+                <button class="btn-ghost" id="invoice-excel-export-btn" ${state.financeInvoicesLoading || !state.selectedDept ? 'disabled' : ''} onclick="doInvoiceExportExcel()" title="Als Excel exportieren" style="margin-left:8px; color: #fff; border-color: rgba(255,255,255,0.25);">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="margin-right:4px;vertical-align:-2px">
+                        <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M4 5l3 3-3 3M9 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>Excel
+                </button>
             </div>
             <div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f0;align-items:center;flex-wrap:wrap">
                 <div><span style="color:#888;font-size:0.86rem">Offener Gesamtbetrag</span><br>

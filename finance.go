@@ -7,6 +7,8 @@ import (
 
 	"github.com/as27/easyvapi"
 	"github.com/as27/easyvapi/model"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/xuri/excelize/v2"
 )
 
 // BankAccountInfo is a slim bank account descriptor for the frontend.
@@ -63,16 +65,15 @@ type FinanceOverview struct {
 
 // GetBankAccounts returns the bank accounts assigned to the given department in the config.
 func (a *App) GetBankAccounts(department string) ([]BankAccountInfo, error) {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
+	}
 	a.mu.RLock()
 	conf := a.extConf
-	client := a.apiClient
 	a.mu.RUnlock()
-
 	if conf == nil {
 		return nil, fmt.Errorf("externe Konfiguration nicht geladen")
-	}
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
 	}
 
 	var dept *Department
@@ -113,12 +114,9 @@ func (a *App) GetBankAccounts(department string) ([]BankAccountInfo, error) {
 // GetBookings returns bookings for the given bank account, filtered by date range.
 // dateFrom and dateTo are inclusive dates in YYYY-MM-DD format (empty = no filter).
 func (a *App) GetBookings(bankAccountID int, dateFrom, dateTo string) ([]BookingRow, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
 	}
 
 	q := easyvapi.NewQuery().Fields("id", "amount", "date", "receiver", "description", "billingId")
@@ -185,11 +183,9 @@ func (a *App) ReloadOpenInvoices(department string) (CachedData[[]InvoiceRow], e
 }
 
 func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-	if client == nil {
-		return CachedData[[]InvoiceRow]{}, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[[]InvoiceRow]{}, err
 	}
 
 	isFalse := false
@@ -265,11 +261,9 @@ func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], err
 
 // GetInvoiceItems returns all line items for the given invoice ID.
 func (a *App) GetInvoiceItems(invoiceID int) ([]InvoiceItemRow, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
 	}
 
 	items, err := client.InvoiceItems.ListAll(a.ctx, &easyvapi.InvoiceItemListOptions{
@@ -297,13 +291,13 @@ func (a *App) GetInvoiceItems(invoiceID int) ([]InvoiceItemRow, error) {
 
 // CreateCashPayment books a cash payment for an open invoice.
 func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, date, invNumber, receiver string) error {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return err
+	}
 	a.mu.RLock()
-	client := a.apiClient
 	conf := a.extConf
 	a.mu.RUnlock()
-	if client == nil {
-		return fmt.Errorf("API-Client nicht initialisiert")
-	}
 
 	refNumber := ""
 	if inv, err := client.Invoices.Get(a.ctx, invoiceID, nil); err == nil && inv != nil {
@@ -321,7 +315,7 @@ func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, da
 		relatedInvoice = []string{fmt.Sprintf("%s/invoice/%d", baseURL, invoiceID)}
 	}
 
-	_, err := client.Bookings.Create(a.ctx, model.BookingCreate{
+	_, err = client.Bookings.Create(a.ctx, model.BookingCreate{
 		Amount:         amount,
 		BankAccount:    bankAccountID,
 		Date:           date,
@@ -337,9 +331,12 @@ func (a *App) CreateCashPayment(bankAccountID, invoiceID int, amount float64, da
 
 // GetFinanceOverview returns aggregated statistics for the finance overview card.
 func (a *App) GetFinanceOverview(department string) (FinanceOverview, error) {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return FinanceOverview{}, err
+	}
 	a.mu.RLock()
 	conf := a.extConf
-	client := a.apiClient
 	a.mu.RUnlock()
 
 	var ov FinanceOverview
@@ -391,4 +388,180 @@ func (a *App) GetFinanceOverview(department string) (FinanceOverview, error) {
 	}
 
 	return ov, nil
+}
+
+// ExportInvoicesExcel exports all open invoices of the given department as an Excel file.
+func (a *App) ExportInvoicesExcel(department string) (string, error) {
+	cached, err := a.GetOpenInvoices(department)
+	if err != nil {
+		return "", err
+	}
+	invoices := cached.Data
+
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Offene Rechnungen exportieren",
+		DefaultFilename: fmt.Sprintf("Offene_Rechnungen_%s.xlsx", strings.ReplaceAll(department, " ", "_")),
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Excel-Tabelle (*.xlsx)", Pattern: "*.xlsx"},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("Dialog-Fehler: %w", err)
+	}
+	if path == "" {
+		return "", nil
+	}
+
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "Offene Rechnungen"
+	f.SetSheetName("Sheet1", sheet)
+
+	headerFill, _ := f.NewStyle(&excelize.Style{
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"111111"}, Pattern: 1},
+		Font:      &excelize.Font{Bold: true, Color: "F5C400", Size: 11, Family: "Calibri"},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: false},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "F5C400", Style: 2},
+		},
+	})
+	cellStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+	cellStyleAlt, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F5F5F5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+	numberStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+	numberStyleAlt, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F5F5F5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+
+	amountStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "right"},
+		NumFmt:    2, // "0.00"
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+	amountStyleAlt, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10, Family: "Calibri", Color: "111111"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F5F5F5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "right"},
+		NumFmt:    2, // "0.00"
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "DDDDDD", Style: 1},
+		},
+	})
+
+	type colDef struct {
+		header string
+		width  float64
+		getter func(InvoiceRow) interface{}
+		center bool
+		isAmt  bool
+	}
+	cols := []colDef{
+		{"Rechnungs-Nr.", 16, func(i InvoiceRow) interface{} { return i.InvNumber }, true, false},
+		{"Datum", 12, func(i InvoiceRow) interface{} { return i.Date }, true, false},
+		{"Empfänger", 28, func(i InvoiceRow) interface{} { return i.Receiver }, false, false},
+		{"Beschreibung", 32, func(i InvoiceRow) interface{} { return i.Description }, false, false},
+		{"Referenz-Nr.", 16, func(i InvoiceRow) interface{} { return i.RefNumber }, true, false},
+		{"Gesamtbetrag", 14, func(i InvoiceRow) interface{} { return i.TotalPrice }, false, true},
+		{"Offener Betrag", 14, func(i InvoiceRow) interface{} { return i.PaymentDifference }, false, true},
+		{"Gebühr", 10, func(i InvoiceRow) interface{} { return i.Charge }, false, true},
+		{"Rücklastschrift", 16, func(i InvoiceRow) interface{} { return i.Chargeback }, false, true},
+	}
+
+	f.SetRowHeight(sheet, 1, 22)
+
+	for ci, col := range cols {
+		cell, _ := excelize.CoordinatesToCellName(ci+1, 1)
+		f.SetCellValue(sheet, cell, col.header)
+		f.SetCellStyle(sheet, cell, cell, headerFill)
+		f.SetColWidth(sheet, colLetter(ci+1), colLetter(ci+1), col.width)
+	}
+
+	for ri, inv := range invoices {
+		row := ri + 2
+		f.SetRowHeight(sheet, row, 18)
+		isAlt := ri%2 == 1
+		for ci, col := range cols {
+			cell, _ := excelize.CoordinatesToCellName(ci+1, row)
+			f.SetCellValue(sheet, cell, col.getter(inv))
+			var style int
+			if col.isAmt {
+				if isAlt {
+					style = amountStyleAlt
+				} else {
+					style = amountStyle
+				}
+			} else if col.center {
+				if isAlt {
+					style = numberStyleAlt
+				} else {
+					style = numberStyle
+				}
+			} else {
+				if isAlt {
+					style = cellStyleAlt
+				} else {
+					style = cellStyle
+				}
+			}
+			f.SetCellStyle(sheet, cell, cell, style)
+		}
+	}
+
+	lastCol, _ := excelize.CoordinatesToCellName(len(cols), len(invoices)+1)
+	disable := false
+	_ = f.AddTable(sheet, &excelize.Table{
+		Range:          "A1:" + lastCol,
+		Name:           "Rechnungen",
+		StyleName:      "",
+		ShowRowStripes: &disable,
+	})
+	for ci := range cols {
+		cell, _ := excelize.CoordinatesToCellName(ci+1, 1)
+		f.SetCellStyle(sheet, cell, cell, headerFill)
+	}
+
+	f.SetSheetProps(sheet, &excelize.SheetPropsOptions{
+		TabColorRGB: stringPtr("F5C400"),
+	})
+	f.SetPanes(sheet, &excelize.Panes{
+		Freeze:      true,
+		YSplit:      1,
+		TopLeftCell: "A2",
+		ActivePane:  "bottomLeft",
+	})
+
+	if err := f.SaveAs(path); err != nil {
+		return "", fmt.Errorf("Excel-Datei konnte nicht gespeichert werden: %w", err)
+	}
+	return path, nil
 }

@@ -37,12 +37,9 @@ func (a *App) ReloadProtocols() (CachedData[ProtocolOverview], error) {
 }
 
 func (a *App) loadProtocolsData() (CachedData[ProtocolOverview], error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return CachedData[ProtocolOverview]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[ProtocolOverview]{}, err
 	}
 
 	var overview ProtocolOverview

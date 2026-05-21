@@ -6,6 +6,10 @@ export function CreateCashPayment(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['CreateCashPayment'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function ExportInvoicesExcel(arg1) {
+  return window['go']['main']['App']['ExportInvoicesExcel'](arg1);
+}
+
 export function ExportMembersExcel(arg1) {
   return window['go']['main']['App']['ExportMembersExcel'](arg1);
 }
