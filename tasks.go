@@ -41,12 +41,9 @@ func (a *App) ReloadTasks() (CachedData[TaskOverview], error) {
 }
 
 func (a *App) loadTasksData() (CachedData[TaskOverview], error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return CachedData[TaskOverview]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[TaskOverview]{}, err
 	}
 
 	var overview TaskOverview
@@ -126,12 +123,9 @@ func extractID(apiURL string) int {
 
 // GetTaskMetadata fetches available TaskGroups and Events for the task form.
 func (a *App) GetTaskMetadata() (TaskMetadata, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return TaskMetadata{}, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return TaskMetadata{}, err
 	}
 
 	var meta TaskMetadata
@@ -167,12 +161,9 @@ func (a *App) GetTaskMetadata() (TaskMetadata, error) {
 
 // SaveTask creates a new task or updates an existing one.
 func (a *App) SaveTask(row TaskRow) (CachedData[TaskOverview], error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return CachedData[TaskOverview]{}, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[TaskOverview]{}, err
 	}
 
 	tc := model.TaskCreate{
@@ -196,7 +187,6 @@ func (a *App) SaveTask(row TaskRow) (CachedData[TaskOverview], error) {
 		tc.ParentEvent = &row.ParentEventID
 	}
 
-	var err error
 	if row.ID == 0 {
 		_, err = client.Tasks.Create(a.ctx, tc)
 	} else {

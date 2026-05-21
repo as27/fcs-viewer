@@ -50,16 +50,15 @@ type DepartmentDetail struct {
 
 // GetDepartmentOverview returns all departments with their resolved group details.
 func (a *App) GetDepartmentOverview() ([]DepartmentDetail, error) {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
+	}
 	a.mu.RLock()
 	conf := a.extConf
-	client := a.apiClient
 	a.mu.RUnlock()
-
 	if conf == nil {
 		return nil, fmt.Errorf("externe Konfiguration nicht geladen")
-	}
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
 	}
 
 	allGroups, err := client.MemberGroups.ListAll(a.ctx, nil)
@@ -139,16 +138,15 @@ func (a *App) ReloadMembers(department string) (CachedData[[]MemberRow], error) 
 }
 
 func (a *App) loadMembers(department string) (CachedData[[]MemberRow], error) {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[[]MemberRow]{}, err
+	}
 	a.mu.RLock()
 	conf := a.extConf
-	client := a.apiClient
 	a.mu.RUnlock()
-
 	if conf == nil {
 		return CachedData[[]MemberRow]{}, fmt.Errorf("externe Konfiguration nicht geladen")
-	}
-	if client == nil {
-		return CachedData[[]MemberRow]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
 	}
 
 	var dept *Department
@@ -205,9 +203,10 @@ func (a *App) loadMembers(department string) (CachedData[[]MemberRow], error) {
 
 // resolveGroupIDs maps short names to easyvapi integer group IDs.
 func (a *App) resolveGroupIDs(shorts []string) ([]int, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
+	}
 
 	shortSet := make(map[string]bool, len(shorts))
 	for _, s := range shorts {

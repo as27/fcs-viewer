@@ -160,6 +160,7 @@ function attachListeners() {
             state.financeInvoices = [];
             state.financeOverview = null;
             state.expandedInvoiceID = null;
+            state.expandedInvoices = {};
             state.invoiceItems = {};
             state.invoiceItemsLoading = {};
             render();

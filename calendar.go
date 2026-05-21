@@ -30,11 +30,9 @@ type CalendarEvent struct {
 
 // GetCalendars returns all calendars from the easyVerein API.
 func (a *App) GetCalendars() ([]CalendarInfo, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
 	}
 	cals, err := client.Calendars.ListAll(a.ctx, nil)
 	if err != nil {
@@ -54,11 +52,9 @@ func (a *App) GetCalendars() ([]CalendarInfo, error) {
 // GetCalendarEvents returns all events and (optionally) member birthdays for the
 // given year/month. department may be empty to skip birthday generation.
 func (a *App) GetCalendarEvents(department string, year int, month int) ([]CalendarEvent, error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-	if client == nil {
-		return nil, fmt.Errorf("API-Client nicht initialisiert")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return nil, err
 	}
 
 	startDate := fmt.Sprintf("%04d-%02d-01T00:00:00", year, month)

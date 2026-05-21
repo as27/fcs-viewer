@@ -18,7 +18,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.4"
+const AppVersion = "1.0.5"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -262,6 +262,17 @@ func (a *App) loadExternalConfig() {
 			easyvapi.WithBaseURL(conf.Vars.BaseURL))
 	}
 	a.mu.Unlock()
+}
+
+// getAPIClient reloads the configuration and returns the up-to-date API client.
+func (a *App) getAPIClient() (*easyvapi.Client, error) {
+	a.loadExternalConfig()
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.apiClient == nil {
+		return nil, fmt.Errorf("API-Client ist nicht initialisiert (Konfigurationsfehler)")
+	}
+	return a.apiClient, nil
 }
 
 // GetSettings returns the current settings for display in the frontend.

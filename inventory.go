@@ -76,12 +76,9 @@ func (a *App) ReloadInventory() (CachedData[InventoryOverview], error) {
 }
 
 func (a *App) loadInventoryData() (CachedData[InventoryOverview], error) {
-	a.mu.RLock()
-	client := a.apiClient
-	a.mu.RUnlock()
-
-	if client == nil {
-		return CachedData[InventoryOverview]{}, fmt.Errorf("API-Client nicht initialisiert (kein Token)")
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[InventoryOverview]{}, err
 	}
 
 	var overview InventoryOverview
