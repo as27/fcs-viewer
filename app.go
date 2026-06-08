@@ -18,7 +18,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.5"
+const AppVersion = "1.0.6"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -353,4 +353,20 @@ func (a *App) ExportPublicKey() (string, error) {
 		return "", fmt.Errorf("Datei konnte nicht gespeichert werden: %w", err)
 	}
 	return path, nil
+}
+
+// ConfirmDeletion shows a native confirmation dialog and returns true if the user confirmed.
+func (a *App) ConfirmDeletion(title, message string) (bool, error) {
+	selection, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         title,
+		Message:       message,
+		Buttons:       []string{"Ja", "Nein"},
+		DefaultButton: "Ja",
+		CancelButton:  "Nein",
+	})
+	if err != nil {
+		return false, err
+	}
+	return selection == "Ja", nil
 }

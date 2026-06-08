@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { esc, ICONS, formatTimestamp } from './utils.js';
-import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask } from '../wailsjs/go/main/App';
+import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask, DeleteTask, ConfirmDeletion } from '../wailsjs/go/main/App';
 
 let renderApp, refreshContent;
 
@@ -22,7 +22,9 @@ export function renderTasks() {
     
     let tasks = allTasks;
     // Apply Filter
-    if (state.tasksStatusFilter !== 'alle') {
+    if (state.tasksStatusFilter === 'hide_completed') {
+        tasks = tasks.filter(t => t.state !== 'erledigt');
+    } else if (state.tasksStatusFilter !== 'alle') {
         tasks = tasks.filter(t => t.state === state.tasksStatusFilter);
     }
 
@@ -37,11 +39,20 @@ export function renderTasks() {
 
     const timestampHtml = state.tasksUpdatedAt ? `<span class="timestamp">${esc(formatTimestamp(state.tasksUpdatedAt))}</span>` : '';
 
+    let statusFilterText = '';
+    if (state.tasksStatusFilter === 'alle') {
+        statusFilterText = 'gefunden';
+    } else if (state.tasksStatusFilter === 'hide_completed') {
+        statusFilterText = 'gefunden, die nicht erledigt sind';
+    } else {
+        statusFilterText = `mit dem Status "${state.tasksStatusFilter}" gefunden`;
+    }
+
     const tableHtml = tasks.length === 0
         ? `<div class="empty-state">
              <div class="empty-state-icon">📋</div>
              <div class="empty-state-title">Keine Aufgaben</div>
-             <div class="empty-state-text">Es wurden keine Aufgaben mit dem Status "${esc(state.tasksStatusFilter)}" gefunden.</div>
+             <div class="empty-state-text">Es wurden keine Aufgaben ${esc(statusFilterText)}.</div>
            </div>`
         : `<table class="data-table">
             <thead>
@@ -50,7 +61,7 @@ export function renderTasks() {
                     <th class="${state.tasksSortCol === 'name' ? 'sort-' + state.tasksSortDir : ''}" data-sort="name">Aufgabe</th>
                     <th style="width:140px" class="${state.tasksSortCol === 'state' ? 'sort-' + state.tasksSortDir : ''}" data-sort="state">Status</th>
                     <th style="width:110px" class="${state.tasksSortCol === 'public' ? 'sort-' + state.tasksSortDir : ''}" data-sort="public">Sichtbarkeit</th>
-                    <th style="width:40px"></th>
+                    <th style="width:80px"></th>
                 </tr>
             </thead>
             <tbody>
@@ -69,9 +80,12 @@ export function renderTasks() {
                             </span>
                         </td>
                         <td>${t.public ? 'Öffentlich' : 'Intern'}</td>
-                        <td style="text-align:right">
+                        <td style="text-align:right;white-space:nowrap">
                             <button class="btn-ghost task-edit-btn" data-id="${t.id}" title="Bearbeiten">
                                 ${ICONS.edit}
+                            </button>
+                            <button class="btn-ghost task-delete-btn" data-id="${t.id}" title="Löschen" style="color:#dc2626;margin-left:4px">
+                                ${ICONS.trash}
                             </button>
                         </td>
                     </tr>
@@ -93,8 +107,9 @@ export function renderTasks() {
 
                     <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
                         <label for="tasks-status-filter" style="font-size:0.79rem;font-weight:600;color:#111;text-transform:uppercase;letter-spacing:0.03em">Status:</label>
-                        <select class="dept-select" id="tasks-status-filter" style="width:150px; border-color:rgba(0,0,0,0.3); background-color:#fff; color:#111">
+                        <select class="dept-select" id="tasks-status-filter" style="width:180px; border-color:rgba(0,0,0,0.3); background-color:#fff; color:#111">
                             <option value="alle" ${state.tasksStatusFilter === 'alle' ? 'selected' : ''}>Alle</option>
+                            <option value="hide_completed" ${state.tasksStatusFilter === 'hide_completed' ? 'selected' : ''}>Erledigt ausblenden</option>
                             ${uniqueStatuses.map(s => `
                                 <option value="${esc(s)}" ${state.tasksStatusFilter === s ? 'selected' : ''}>${esc(s)}</option>
                             `).join('')}
@@ -285,6 +300,10 @@ export function attachTasksListeners() {
         btn.addEventListener('click', () => openTaskModal(parseInt(btn.dataset.id)));
     });
 
+    document.querySelectorAll('.task-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => doDeleteTask(parseInt(btn.dataset.id)));
+    });
+
     const statusFilter = document.getElementById('tasks-status-filter');
     if (statusFilter) {
         statusFilter.addEventListener('change', (e) => {
@@ -365,6 +384,38 @@ export async function doReloadTasks() {
 
     try {
         const res = await ReloadTasks();
+        state.tasksData = res.data;
+        state.tasksUpdatedAt = res.updatedAt;
+    } catch (e) {
+        state.tasksError = String(e);
+    } finally {
+        state.tasksLoading = false;
+        renderApp();
+    }
+}
+
+async function doDeleteTask(taskId) {
+    const task = state.tasksData.tasks.find(x => x.id === taskId);
+    const taskName = task ? task.name : '';
+
+    try {
+        const confirmed = await ConfirmDeletion('Aufgabe löschen', `Möchtest du die Aufgabe "${taskName}" wirklich löschen?`);
+        if (!confirmed) {
+            return;
+        }
+    } catch (e) {
+        console.error("ConfirmDeletion error", e);
+        if (!confirm(`Möchtest du die Aufgabe "${taskName}" wirklich löschen?`)) {
+            return;
+        }
+    }
+
+    state.tasksLoading = true;
+    state.tasksError = '';
+    renderApp();
+
+    try {
+        const res = await DeleteTask(taskId);
         state.tasksData = res.data;
         state.tasksUpdatedAt = res.updatedAt;
     } catch (e) {
