@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function CreateCashPayment(arg1:number,arg2:number,arg3:number,arg4:string,arg5:string,arg6:string):Promise<void>;
 
+export function DeleteTask(arg1:number):Promise<main.CachedData_main_TaskOverview_>;
+
 export function ExportInvoicesExcel(arg1:string):Promise<string>;
 
 export function ExportMembersExcel(arg1:string):Promise<string>;

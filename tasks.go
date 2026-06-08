@@ -199,3 +199,18 @@ func (a *App) SaveTask(row TaskRow) (CachedData[TaskOverview], error) {
 
 	return a.ReloadTasks()
 }
+
+// DeleteTask deletes the task with the given ID.
+func (a *App) DeleteTask(id int) (CachedData[TaskOverview], error) {
+	client, err := a.getAPIClient()
+	if err != nil {
+		return CachedData[TaskOverview]{}, err
+	}
+
+	err = client.Tasks.Delete(a.ctx, id)
+	if err != nil {
+		return CachedData[TaskOverview]{}, err
+	}
+
+	return a.ReloadTasks()
+}

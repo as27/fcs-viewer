@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { esc, ICONS, formatTimestamp } from './utils.js';
-import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask } from '../wailsjs/go/main/App';
+import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask, DeleteTask } from '../wailsjs/go/main/App';
 
 let renderApp, refreshContent;
 
@@ -61,7 +61,7 @@ export function renderTasks() {
                     <th class="${state.tasksSortCol === 'name' ? 'sort-' + state.tasksSortDir : ''}" data-sort="name">Aufgabe</th>
                     <th style="width:140px" class="${state.tasksSortCol === 'state' ? 'sort-' + state.tasksSortDir : ''}" data-sort="state">Status</th>
                     <th style="width:110px" class="${state.tasksSortCol === 'public' ? 'sort-' + state.tasksSortDir : ''}" data-sort="public">Sichtbarkeit</th>
-                    <th style="width:40px"></th>
+                    <th style="width:80px"></th>
                 </tr>
             </thead>
             <tbody>
@@ -80,9 +80,12 @@ export function renderTasks() {
                             </span>
                         </td>
                         <td>${t.public ? 'Öffentlich' : 'Intern'}</td>
-                        <td style="text-align:right">
+                        <td style="text-align:right;white-space:nowrap">
                             <button class="btn-ghost task-edit-btn" data-id="${t.id}" title="Bearbeiten">
                                 ${ICONS.edit}
+                            </button>
+                            <button class="btn-ghost task-delete-btn" data-id="${t.id}" title="Löschen" style="color:#dc2626;margin-left:4px">
+                                ${ICONS.trash}
                             </button>
                         </td>
                     </tr>
@@ -297,6 +300,10 @@ export function attachTasksListeners() {
         btn.addEventListener('click', () => openTaskModal(parseInt(btn.dataset.id)));
     });
 
+    document.querySelectorAll('.task-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => doDeleteTask(parseInt(btn.dataset.id)));
+    });
+
     const statusFilter = document.getElementById('tasks-status-filter');
     if (statusFilter) {
         statusFilter.addEventListener('change', (e) => {
@@ -377,6 +384,27 @@ export async function doReloadTasks() {
 
     try {
         const res = await ReloadTasks();
+        state.tasksData = res.data;
+        state.tasksUpdatedAt = res.updatedAt;
+    } catch (e) {
+        state.tasksError = String(e);
+    } finally {
+        state.tasksLoading = false;
+        renderApp();
+    }
+}
+
+async function doDeleteTask(taskId) {
+    if (!confirm('Möchtest du diese Aufgabe wirklich löschen?')) {
+        return;
+    }
+
+    state.tasksLoading = true;
+    state.tasksError = '';
+    renderApp();
+
+    try {
+        const res = await DeleteTask(taskId);
         state.tasksData = res.data;
         state.tasksUpdatedAt = res.updatedAt;
     } catch (e) {

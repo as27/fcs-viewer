@@ -8,6 +8,7 @@ und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang
 
 ### Hinzugefügt
 - **Aufgaben-Filter**: Option "Erledigt ausblenden" im Aufgaben-Statusfilter hinzugefügt, um alle erledigten Aufgaben auszublenden.
+- **Aufgaben löschen**: Rotes Papierkorb-Icon zum Löschen von Aufgaben mit Sicherheitsabfrage integriert.
 
 ## [1.0.5] - 2026-05-21
 
