@@ -354,3 +354,19 @@ func (a *App) ExportPublicKey() (string, error) {
 	}
 	return path, nil
 }
+
+// ConfirmDeletion shows a native confirmation dialog and returns true if the user confirmed.
+func (a *App) ConfirmDeletion(title, message string) (bool, error) {
+	selection, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         title,
+		Message:       message,
+		Buttons:       []string{"Ja", "Nein"},
+		DefaultButton: "Ja",
+		CancelButton:  "Nein",
+	})
+	if err != nil {
+		return false, err
+	}
+	return selection == "Ja", nil
+}

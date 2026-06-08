@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { esc, ICONS, formatTimestamp } from './utils.js';
-import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask, DeleteTask } from '../wailsjs/go/main/App';
+import { GetTasksOverview, ReloadTasks, GetTaskMetadata, SaveTask, DeleteTask, ConfirmDeletion } from '../wailsjs/go/main/App';
 
 let renderApp, refreshContent;
 
@@ -395,8 +395,19 @@ export async function doReloadTasks() {
 }
 
 async function doDeleteTask(taskId) {
-    if (!confirm('Möchtest du diese Aufgabe wirklich löschen?')) {
-        return;
+    const task = state.tasksData.tasks.find(x => x.id === taskId);
+    const taskName = task ? task.name : '';
+
+    try {
+        const confirmed = await ConfirmDeletion('Aufgabe löschen', `Möchtest du die Aufgabe "${taskName}" wirklich löschen?`);
+        if (!confirmed) {
+            return;
+        }
+    } catch (e) {
+        console.error("ConfirmDeletion error", e);
+        if (!confirm(`Möchtest du die Aufgabe "${taskName}" wirklich löschen?`)) {
+            return;
+        }
     }
 
     state.tasksLoading = true;
