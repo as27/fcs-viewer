@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.6] - 2026-06-08
+
+### Hinzugefügt
+- **Aufgaben-Filter**: Option "Erledigt ausblenden" im Aufgaben-Statusfilter hinzugefügt, um alle erledigten Aufgaben auszublenden.
+
 ## [1.0.5] - 2026-05-21
 
 ### Hinzugefügt

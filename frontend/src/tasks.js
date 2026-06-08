@@ -22,7 +22,9 @@ export function renderTasks() {
     
     let tasks = allTasks;
     // Apply Filter
-    if (state.tasksStatusFilter !== 'alle') {
+    if (state.tasksStatusFilter === 'hide_completed') {
+        tasks = tasks.filter(t => t.state !== 'erledigt');
+    } else if (state.tasksStatusFilter !== 'alle') {
         tasks = tasks.filter(t => t.state === state.tasksStatusFilter);
     }
 
@@ -37,11 +39,20 @@ export function renderTasks() {
 
     const timestampHtml = state.tasksUpdatedAt ? `<span class="timestamp">${esc(formatTimestamp(state.tasksUpdatedAt))}</span>` : '';
 
+    let statusFilterText = '';
+    if (state.tasksStatusFilter === 'alle') {
+        statusFilterText = 'gefunden';
+    } else if (state.tasksStatusFilter === 'hide_completed') {
+        statusFilterText = 'gefunden, die nicht erledigt sind';
+    } else {
+        statusFilterText = `mit dem Status "${state.tasksStatusFilter}" gefunden`;
+    }
+
     const tableHtml = tasks.length === 0
         ? `<div class="empty-state">
              <div class="empty-state-icon">📋</div>
              <div class="empty-state-title">Keine Aufgaben</div>
-             <div class="empty-state-text">Es wurden keine Aufgaben mit dem Status "${esc(state.tasksStatusFilter)}" gefunden.</div>
+             <div class="empty-state-text">Es wurden keine Aufgaben ${esc(statusFilterText)}.</div>
            </div>`
         : `<table class="data-table">
             <thead>
@@ -93,8 +104,9 @@ export function renderTasks() {
 
                     <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
                         <label for="tasks-status-filter" style="font-size:0.79rem;font-weight:600;color:#111;text-transform:uppercase;letter-spacing:0.03em">Status:</label>
-                        <select class="dept-select" id="tasks-status-filter" style="width:150px; border-color:rgba(0,0,0,0.3); background-color:#fff; color:#111">
+                        <select class="dept-select" id="tasks-status-filter" style="width:180px; border-color:rgba(0,0,0,0.3); background-color:#fff; color:#111">
                             <option value="alle" ${state.tasksStatusFilter === 'alle' ? 'selected' : ''}>Alle</option>
+                            <option value="hide_completed" ${state.tasksStatusFilter === 'hide_completed' ? 'selected' : ''}>Erledigt ausblenden</option>
                             ${uniqueStatuses.map(s => `
                                 <option value="${esc(s)}" ${state.tasksStatusFilter === s ? 'selected' : ''}>${esc(s)}</option>
                             `).join('')}
