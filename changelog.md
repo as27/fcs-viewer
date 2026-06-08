@@ -10,6 +10,9 @@ und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang
 - **Aufgaben-Filter**: Option "Erledigt ausblenden" im Aufgaben-Statusfilter hinzugefügt, um alle erledigten Aufgaben auszublenden.
 - **Aufgaben löschen**: Rotes Papierkorb-Icon zum Löschen von Aufgaben mit Sicherheitsabfrage integriert.
 
+### Geändert
+- **API-Token-Sicherheit**: easyvapi auf v1.0.9 aktualisiert. Automatische Token-Aktualisierungen (Refresh) werden jetzt nur noch ausgeführt, wenn ein Callback registriert ist, um unkontrollierte Token-Änderungen und Ungültigkeiten bei anderen Verwendern zu verhindern.
+
 ## [1.0.5] - 2026-05-21
 
 ### Hinzugefügt
