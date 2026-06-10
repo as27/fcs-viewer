@@ -18,7 +18,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.6"
+const AppVersion = "1.0.7"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -162,6 +162,9 @@ type App struct {
 	protocolCache     *CachedData[ProtocolOverview]
 	activeModules     []string
 	activeDepartments []string
+
+	configLoadMu   sync.Mutex
+	lastConfigLoad time.Time
 }
 
 // NewApp creates a new App.
@@ -195,7 +198,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.loader = loader
 
-	a.loadExternalConfig()
+	a.loadExternalConfig(false)
 }
 
 // ReloadConfig forces a fresh download of the external configuration and
@@ -212,15 +215,27 @@ func (a *App) ReloadConfig() Settings {
 	a.protocolCache = nil
 	a.mu.Unlock()
 
-	a.loadExternalConfig()
+	a.loadExternalConfig(true)
 	return a.GetSettings()
 }
 
-func (a *App) loadExternalConfig() {
+func (a *App) loadExternalConfig(force bool) {
+	a.configLoadMu.Lock()
+	defer a.configLoadMu.Unlock()
+
+	a.mu.RLock()
+	hasConf := a.extConf != nil
+	lastLoad := a.lastConfigLoad
+	a.mu.RUnlock()
+
+	if hasConf && !force && time.Since(lastLoad) < 1*time.Hour {
+		return
+	}
+
 	if a.loader == nil {
 		return
 	}
-	rc, err := a.loader.Open(a.ctx, externalConfigURL, false)
+	rc, err := a.loader.Open(a.ctx, externalConfigURL, force)
 	if err != nil {
 		a.mu.Lock()
 		a.confErr = fmt.Sprintf("Externe Konfiguration konnte nicht geladen werden: %v", err)
@@ -238,14 +253,12 @@ func (a *App) loadExternalConfig() {
 	}
 
 	var activeModules, activeDepartments []string
-	if a.loader != nil {
-		pubKey := a.loader.PublicKey()
-		for _, entry := range conf.Keys {
-			if entry.PublicKey == pubKey {
-				activeModules = entry.Modules
-				activeDepartments = entry.Departments
-				break
-			}
+	pubKey := a.loader.PublicKey()
+	for _, entry := range conf.Keys {
+		if entry.PublicKey == pubKey {
+			activeModules = entry.Modules
+			activeDepartments = entry.Departments
+			break
 		}
 	}
 	if len(activeModules) == 0 {
@@ -254,6 +267,7 @@ func (a *App) loadExternalConfig() {
 
 	a.mu.Lock()
 	a.extConf = &conf
+	a.lastConfigLoad = time.Now()
 	a.confErr = ""
 	a.activeModules = activeModules
 	a.activeDepartments = activeDepartments
@@ -266,7 +280,7 @@ func (a *App) loadExternalConfig() {
 
 // getAPIClient reloads the configuration and returns the up-to-date API client.
 func (a *App) getAPIClient() (*easyvapi.Client, error) {
-	a.loadExternalConfig()
+	a.loadExternalConfig(false)
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	if a.apiClient == nil {
@@ -277,6 +291,7 @@ func (a *App) getAPIClient() (*easyvapi.Client, error) {
 
 // GetSettings returns the current settings for display in the frontend.
 func (a *App) GetSettings() Settings {
+	a.loadExternalConfig(false)
 	s := Settings{
 		Version:   AppVersion,
 		ConfigURL: externalConfigURL,
@@ -305,6 +320,7 @@ func (a *App) GetSettings() Settings {
 
 // GetDepartments returns the list of department names from the external config.
 func (a *App) GetDepartments() []string {
+	a.loadExternalConfig(false)
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 

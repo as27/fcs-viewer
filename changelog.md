@@ -4,6 +4,13 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.7] - 2026-06-10
+
+### Behoben
+- **Konfigurations-Laden bei Start**: Ein Race-Condition-Problem beim App-Start behoben, bei dem die Frontend-Anfragen nach Einstellungen und Abteilungen den API-Token und die API-Base-URL als fehlend anzeigten, wenn der ageloader-Cache abgelaufen war.
+- **Thread-Sicherheit**: Mutex-Sperren beim Laden der externen Konfiguration implementiert, um parallele Downloads und Cache-Datei-Beschädigungen bei zeitgleichen Frontend-Aufrufen zu verhindern.
+- **Lade-Performance**: Die externe Konfiguration wird nun in-memory zwischengespeichert und nur maximal einmal pro Stunde überprüft (statt bei jedem API-Aufruf), was unnötige IO-Zugriffe (Timestamp-Check) verhindert.
+
 ## [1.0.6] - 2026-06-08
 
 ### Hinzugefügt
