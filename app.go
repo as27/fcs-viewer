@@ -19,7 +19,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.8"
+const AppVersion = "1.0.9"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -223,7 +223,10 @@ func (a *App) ReloadConfig() Settings {
 func (a *App) loadExternalConfig(force bool) {
 	a.configLoadMu.Lock()
 	defer a.configLoadMu.Unlock()
+	a.loadExternalConfigLocked(force)
+}
 
+func (a *App) loadExternalConfigLocked(force bool) {
 	a.mu.RLock()
 	hasConf := a.extConf != nil
 	lastLoad := a.lastConfigLoad
@@ -451,7 +454,7 @@ func (a *App) reloadConfigOnUnauthorized(oldToken string) string {
 	if a.loader != nil {
 		_ = a.loader.Invalidate(externalConfigURL)
 	}
-	a.loadExternalConfig(true)
+	a.loadExternalConfigLocked(true)
 
 	a.mu.RLock()
 	if a.extConf != nil {

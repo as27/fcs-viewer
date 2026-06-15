@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.9] - 2026-06-15
+
+### Behoben
+- **Deadlock bei API-Token-Refresh behoben**: Es wurde ein Deadlock-Fehler behoben, der dazu führte, dass das Laden der App unendlich lange blockierte (ohne Timeout). Der Deadlock trat auf, weil beim HTTP 401 Fehler das erneute Laden der Konfiguration fälschlicherweise eine bereits gesperrte Mutex (`configLoadMu`) erneut anforderte. Dies wurde durch Trennung in eine interne, ungesperrte Ladefunktion (`loadExternalConfigLocked`) gelöst.
+
 ## [1.0.8] - 2026-06-15
 
 ### Behoben
