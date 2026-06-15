@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +19,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.6"
+const AppVersion = "1.0.9"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -162,6 +163,9 @@ type App struct {
 	protocolCache     *CachedData[ProtocolOverview]
 	activeModules     []string
 	activeDepartments []string
+
+	configLoadMu   sync.Mutex
+	lastConfigLoad time.Time
 }
 
 // NewApp creates a new App.
@@ -195,7 +199,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.loader = loader
 
-	a.loadExternalConfig()
+	a.loadExternalConfig(false)
 }
 
 // ReloadConfig forces a fresh download of the external configuration and
@@ -212,15 +216,30 @@ func (a *App) ReloadConfig() Settings {
 	a.protocolCache = nil
 	a.mu.Unlock()
 
-	a.loadExternalConfig()
+	a.loadExternalConfig(true)
 	return a.GetSettings()
 }
 
-func (a *App) loadExternalConfig() {
+func (a *App) loadExternalConfig(force bool) {
+	a.configLoadMu.Lock()
+	defer a.configLoadMu.Unlock()
+	a.loadExternalConfigLocked(force)
+}
+
+func (a *App) loadExternalConfigLocked(force bool) {
+	a.mu.RLock()
+	hasConf := a.extConf != nil
+	lastLoad := a.lastConfigLoad
+	a.mu.RUnlock()
+
+	if hasConf && !force && time.Since(lastLoad) < 1*time.Hour {
+		return
+	}
+
 	if a.loader == nil {
 		return
 	}
-	rc, err := a.loader.Open(a.ctx, externalConfigURL, false)
+	rc, err := a.loader.Open(a.ctx, externalConfigURL, force)
 	if err != nil {
 		a.mu.Lock()
 		a.confErr = fmt.Sprintf("Externe Konfiguration konnte nicht geladen werden: %v", err)
@@ -238,14 +257,12 @@ func (a *App) loadExternalConfig() {
 	}
 
 	var activeModules, activeDepartments []string
-	if a.loader != nil {
-		pubKey := a.loader.PublicKey()
-		for _, entry := range conf.Keys {
-			if entry.PublicKey == pubKey {
-				activeModules = entry.Modules
-				activeDepartments = entry.Departments
-				break
-			}
+	pubKey := a.loader.PublicKey()
+	for _, entry := range conf.Keys {
+		if entry.PublicKey == pubKey {
+			activeModules = entry.Modules
+			activeDepartments = entry.Departments
+			break
 		}
 	}
 	if len(activeModules) == 0 {
@@ -254,19 +271,29 @@ func (a *App) loadExternalConfig() {
 
 	a.mu.Lock()
 	a.extConf = &conf
+	a.lastConfigLoad = time.Now()
 	a.confErr = ""
 	a.activeModules = activeModules
 	a.activeDepartments = activeDepartments
 	if conf.Vars.Token != "" {
+		transport := &retryRoundTripper{
+			app:  a,
+			base: http.DefaultTransport,
+		}
+		httpClient := &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: transport,
+		}
 		a.apiClient = easyvapi.New(conf.Vars.Token,
-			easyvapi.WithBaseURL(conf.Vars.BaseURL))
+			easyvapi.WithBaseURL(conf.Vars.BaseURL),
+			easyvapi.WithHTTPClient(httpClient))
 	}
 	a.mu.Unlock()
 }
 
 // getAPIClient reloads the configuration and returns the up-to-date API client.
 func (a *App) getAPIClient() (*easyvapi.Client, error) {
-	a.loadExternalConfig()
+	a.loadExternalConfig(false)
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	if a.apiClient == nil {
@@ -277,6 +304,7 @@ func (a *App) getAPIClient() (*easyvapi.Client, error) {
 
 // GetSettings returns the current settings for display in the frontend.
 func (a *App) GetSettings() Settings {
+	a.loadExternalConfig(false)
 	s := Settings{
 		Version:   AppVersion,
 		ConfigURL: externalConfigURL,
@@ -305,6 +333,7 @@ func (a *App) GetSettings() Settings {
 
 // GetDepartments returns the list of department names from the external config.
 func (a *App) GetDepartments() []string {
+	a.loadExternalConfig(false)
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -369,4 +398,69 @@ func (a *App) ConfirmDeletion(title, message string) (bool, error) {
 		return false, err
 	}
 	return selection == "Ja", nil
+}
+
+type retryRoundTripper struct {
+	app  *App
+	base http.RoundTripper
+}
+
+func (rt *retryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := rt.base.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized && req.Header.Get("X-FCS-Retry") != "true" {
+		resp.Body.Close()
+
+		oldToken := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+		newToken := rt.app.reloadConfigOnUnauthorized(oldToken)
+
+		if newToken != "" {
+			newReq := req.Clone(req.Context())
+			newReq.Header.Set("Authorization", "Bearer "+newToken)
+			newReq.Header.Set("X-FCS-Retry", "true")
+			if req.GetBody != nil {
+				body, err := req.GetBody()
+				if err == nil {
+					newReq.Body = body
+				}
+			}
+			return rt.base.RoundTrip(newReq)
+		}
+	}
+
+	return resp, nil
+}
+
+func (a *App) reloadConfigOnUnauthorized(oldToken string) string {
+	a.configLoadMu.Lock()
+	defer a.configLoadMu.Unlock()
+
+	a.mu.RLock()
+	var currentToken string
+	if a.extConf != nil {
+		currentToken = a.extConf.Vars.Token
+	}
+	a.mu.RUnlock()
+
+	// If the token has already changed in memory, another parallel request already updated it
+	if currentToken != oldToken {
+		return currentToken
+	}
+
+	// Force invalidate cache and reload the external config from URL
+	if a.loader != nil {
+		_ = a.loader.Invalidate(externalConfigURL)
+	}
+	a.loadExternalConfigLocked(true)
+
+	a.mu.RLock()
+	if a.extConf != nil {
+		currentToken = a.extConf.Vars.Token
+	}
+	a.mu.RUnlock()
+
+	return currentToken
 }

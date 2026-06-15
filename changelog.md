@@ -4,6 +4,23 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.9] - 2026-06-15
+
+### Behoben
+- **Deadlock bei API-Token-Refresh behoben**: Es wurde ein Deadlock-Fehler behoben, der dazu führte, dass das Laden der App unendlich lange blockierte (ohne Timeout). Der Deadlock trat auf, weil beim HTTP 401 Fehler das erneute Laden der Konfiguration fälschlicherweise eine bereits gesperrte Mutex (`configLoadMu`) erneut anforderte. Dies wurde durch Trennung in eine interne, ungesperrte Ladefunktion (`loadExternalConfigLocked`) gelöst.
+
+## [1.0.8] - 2026-06-15
+
+### Behoben
+- **Automatischer API-Token-Refresh bei 401**: HTTP 401 (Unauthorized) Fehler, die z. B. nach einem API-Key-Wechsel in der Konfiguration auftreten können, werden nun automatisch abgefangen. Die Anwendung lädt die Konfiguration von `https://as27.github.io/fcspichdata/extern_conf.yaml.age` neu und wiederholt den fehlgeschlagenen Request mit dem neuen Token transparent, bevor ein Fehler an das Frontend gemeldet wird.
+
+## [1.0.7] - 2026-06-10
+
+### Behoben
+- **Konfigurations-Laden bei Start**: Ein Race-Condition-Problem beim App-Start behoben, bei dem die Frontend-Anfragen nach Einstellungen und Abteilungen den API-Token und die API-Base-URL als fehlend anzeigten, wenn der ageloader-Cache abgelaufen war.
+- **Thread-Sicherheit**: Mutex-Sperren beim Laden der externen Konfiguration implementiert, um parallele Downloads und Cache-Datei-Beschädigungen bei zeitgleichen Frontend-Aufrufen zu verhindern.
+- **Lade-Performance**: Die externe Konfiguration wird nun in-memory zwischengespeichert und nur maximal einmal pro Stunde überprüft (statt bei jedem API-Aufruf), was unnötige IO-Zugriffe (Timestamp-Check) verhindert.
+
 ## [1.0.6] - 2026-06-08
 
 ### Hinzugefügt
