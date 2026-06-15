@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +19,7 @@ import (
 
 const externalConfigURL = "https://as27.github.io/fcspichdata/extern_conf.yaml.age"
 
-const AppVersion = "1.0.7"
+const AppVersion = "1.0.8"
 
 // KeyEntry represents a single key entry in the external configuration.
 type KeyEntry struct {
@@ -272,8 +273,17 @@ func (a *App) loadExternalConfig(force bool) {
 	a.activeModules = activeModules
 	a.activeDepartments = activeDepartments
 	if conf.Vars.Token != "" {
+		transport := &retryRoundTripper{
+			app:  a,
+			base: http.DefaultTransport,
+		}
+		httpClient := &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: transport,
+		}
 		a.apiClient = easyvapi.New(conf.Vars.Token,
-			easyvapi.WithBaseURL(conf.Vars.BaseURL))
+			easyvapi.WithBaseURL(conf.Vars.BaseURL),
+			easyvapi.WithHTTPClient(httpClient))
 	}
 	a.mu.Unlock()
 }
@@ -385,4 +395,69 @@ func (a *App) ConfirmDeletion(title, message string) (bool, error) {
 		return false, err
 	}
 	return selection == "Ja", nil
+}
+
+type retryRoundTripper struct {
+	app  *App
+	base http.RoundTripper
+}
+
+func (rt *retryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := rt.base.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized && req.Header.Get("X-FCS-Retry") != "true" {
+		resp.Body.Close()
+
+		oldToken := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+		newToken := rt.app.reloadConfigOnUnauthorized(oldToken)
+
+		if newToken != "" {
+			newReq := req.Clone(req.Context())
+			newReq.Header.Set("Authorization", "Bearer "+newToken)
+			newReq.Header.Set("X-FCS-Retry", "true")
+			if req.GetBody != nil {
+				body, err := req.GetBody()
+				if err == nil {
+					newReq.Body = body
+				}
+			}
+			return rt.base.RoundTrip(newReq)
+		}
+	}
+
+	return resp, nil
+}
+
+func (a *App) reloadConfigOnUnauthorized(oldToken string) string {
+	a.configLoadMu.Lock()
+	defer a.configLoadMu.Unlock()
+
+	a.mu.RLock()
+	var currentToken string
+	if a.extConf != nil {
+		currentToken = a.extConf.Vars.Token
+	}
+	a.mu.RUnlock()
+
+	// If the token has already changed in memory, another parallel request already updated it
+	if currentToken != oldToken {
+		return currentToken
+	}
+
+	// Force invalidate cache and reload the external config from URL
+	if a.loader != nil {
+		_ = a.loader.Invalidate(externalConfigURL)
+	}
+	a.loadExternalConfig(true)
+
+	a.mu.RLock()
+	if a.extConf != nil {
+		currentToken = a.extConf.Vars.Token
+	}
+	a.mu.RUnlock()
+
+	return currentToken
 }

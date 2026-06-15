@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.8] - 2026-06-15
+
+### Behoben
+- **Automatischer API-Token-Refresh bei 401**: HTTP 401 (Unauthorized) Fehler, die z. B. nach einem API-Key-Wechsel in der Konfiguration auftreten können, werden nun automatisch abgefangen. Die Anwendung lädt die Konfiguration von `https://as27.github.io/fcspichdata/extern_conf.yaml.age` neu und wiederholt den fehlgeschlagenen Request mit dem neuen Token transparent, bevor ein Fehler an das Frontend gemeldet wird.
+
 ## [1.0.7] - 2026-06-10
 
 ### Behoben
