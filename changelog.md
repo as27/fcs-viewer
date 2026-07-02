@@ -4,6 +4,14 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.1.0] - 2026-07-02
+
+### Hinzugefügt
+- **Mitglieder-Bankverbindungen**: Die Mitgliedertabelle und der Excel-Export wurden um die Bankverbindung-Felder (Kontoinhaber, IBAN, BIC) erweitert. Diese Spalten sind standardmäßig in der Tabelle ausgeblendet und können über das Spalten-Menü eingeblendet werden.
+
+### Geändert
+- **Abhängigkeits-Update**: `easyvapi` auf Version v1.0.10 aktualisiert, um die integrierten Bankverbindung-Felder des API-Modells zu unterstützen.
+
 ## [1.0.9] - 2026-06-15
 
 ### Behoben

@@ -31,6 +31,9 @@ type MemberRow struct {
 	ResignationDate  string `json:"resignationDate"`
 	Groups           string `json:"groups"`
 	GroupShorts      string `json:"groupShorts"`
+	IBAN             string `json:"iban"`
+	BIC              string `json:"bic"`
+	BankAccountOwner string `json:"bankAccountOwner"`
 }
 
 // GroupDetail holds resolved details for a single member group.
@@ -318,6 +321,9 @@ func (a *App) ExportMembersExcel(department string) (string, error) {
 		{"Austritt", 12, func(m MemberRow) interface{} { return m.ResignationDate }, true},
 		{"Gruppen", 30, func(m MemberRow) interface{} { return m.Groups }, false},
 		{"Kürzel", 14, func(m MemberRow) interface{} { return m.GroupShorts }, false},
+		{"Kontoinhaber", 18, func(m MemberRow) interface{} { return m.BankAccountOwner }, false},
+		{"IBAN", 24, func(m MemberRow) interface{} { return m.IBAN }, false},
+		{"BIC", 12, func(m MemberRow) interface{} { return m.BIC }, true},
 	}
 
 	f.SetRowHeight(sheet, 1, 22)
@@ -446,6 +452,9 @@ func memberToRow(m model.Member) MemberRow {
 		ResignationDate:  dateOnly(m.ResignationDate),
 		Groups:           strings.Join(groups, ", "),
 		GroupShorts:      strings.Join(shorts, ", "),
+		IBAN:             cd.IBAN,
+		BIC:              cd.BIC,
+		BankAccountOwner: cd.BankAccountOwner,
 	}
 }
 

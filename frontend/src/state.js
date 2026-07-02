@@ -90,6 +90,9 @@ export const state = {
         { key: 'resignationDate',  label: 'Austritt',      visible: false },
         { key: 'groups',           label: 'Gruppen',       visible: false },
         { key: 'groupShorts',      label: 'Kürzel',        visible: true  },
+        { key: 'bankAccountOwner', label: 'Kontoinhaber',  visible: false },
+        { key: 'iban',             label: 'IBAN',          visible: false },
+        { key: 'bic',              label: 'BIC',           visible: false },
     ],
 };
 

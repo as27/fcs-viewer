@@ -117,6 +117,9 @@ export namespace main {
 	    resignationDate: string;
 	    groups: string;
 	    groupShorts: string;
+	    iban: string;
+	    bic: string;
+	    bankAccountOwner: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new MemberRow(source);
@@ -140,6 +143,9 @@ export namespace main {
 	        this.resignationDate = source["resignationDate"];
 	        this.groups = source["groups"];
 	        this.groupShorts = source["groupShorts"];
+	        this.iban = source["iban"];
+	        this.bic = source["bic"];
+	        this.bankAccountOwner = source["bankAccountOwner"];
 	    }
 	}
 	export class CachedData___main_MemberRow_ {
