@@ -4,13 +4,17 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
-## [1.1.0] - 2026-07-02
+## [1.0.10] - 2026-07-04
 
 ### Hinzugefügt
 - **Mitglieder-Bankverbindungen**: Die Mitgliedertabelle und der Excel-Export wurden um die Bankverbindung-Felder (Kontoinhaber, IBAN, BIC) erweitert. Diese Spalten sind standardmäßig in der Tabelle ausgeblendet und können über das Spalten-Menü eingeblendet werden.
+- **Modul-Abhängigkeit**: Sichtbarkeit der Bankverbindung-Spalten in der Mitgliederliste wird nun dynamisch gesteuert (nur sichtbar, wenn das Finanz-Modul aktiv ist).
+- **Offene Posten Tabellen-Aufteilung**: Die Spalte "Empfänger" bei offenen Rechnungen wurde in zwei neue Spalten aufgeteilt: "Mitglied" (zeigt den Mitgliedsnamen dynamisch aus den Stammdaten an, inklusive Details-Icon links) und "Zahler" (zeigt den Inhaber der Bankverbindung des Mitglieds).
+- **Erweiterte Finanz-Suche**: Die Suche bei offenen Rechnungen filtert nun zusätzlich auch nach Mitgliedsnamen sowie nach dem Namen des Kontoinhabers (Zahler).
 
 ### Geändert
 - **Abhängigkeits-Update**: `easyvapi` auf Version v1.0.10 aktualisiert, um die integrierten Bankverbindung-Felder des API-Modells zu unterstützen.
+- **Robustere Build-Skripte**: `build.sh` bereinigt nun vor dem Verschieben der kompilierten App-Bündel eventuell bereits existierende Ordner, um Fehler beim Überschreiben zu vermeiden.
 
 ## [1.0.9] - 2026-06-15
 

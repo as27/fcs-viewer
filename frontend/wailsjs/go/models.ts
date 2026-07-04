@@ -49,6 +49,9 @@ export namespace main {
 	    charge: number;
 	    chargeback: number;
 	    refNumber: string;
+	    memberId: number;
+	    memberFirstName: string;
+	    memberLastName: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new InvoiceRow(source);
@@ -66,6 +69,9 @@ export namespace main {
 	        this.charge = source["charge"];
 	        this.chargeback = source["chargeback"];
 	        this.refNumber = source["refNumber"];
+	        this.memberId = source["memberId"];
+	        this.memberFirstName = source["memberFirstName"];
+	        this.memberLastName = source["memberLastName"];
 	    }
 	}
 	export class CachedData___main_InvoiceRow_ {
@@ -102,6 +108,7 @@ export namespace main {
 	}
 	export class MemberRow {
 	    id: number;
+	    contactDetailsId: number;
 	    membershipNumber: string;
 	    firstName: string;
 	    familyName: string;
@@ -128,6 +135,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
+	        this.contactDetailsId = source["contactDetailsId"];
 	        this.membershipNumber = source["membershipNumber"];
 	        this.firstName = source["firstName"];
 	        this.familyName = source["familyName"];

@@ -16,6 +16,7 @@ import (
 // MemberRow is a flat representation of a member for the frontend.
 type MemberRow struct {
 	ID               int    `json:"id"`
+	ContactDetailsID int    `json:"contactDetailsId"`
 	MembershipNumber string `json:"membershipNumber"`
 	FirstName        string `json:"firstName"`
 	FamilyName       string `json:"familyName"`
@@ -304,27 +305,55 @@ func (a *App) ExportMembersExcel(department string) (string, error) {
 		width  float64
 		getter func(MemberRow) interface{}
 		center bool
+		module string
 	}
 	cols := []colDef{
-		{"Nr.", 8, func(m MemberRow) interface{} { return m.MembershipNumber }, true},
-		{"Nachname", 18, func(m MemberRow) interface{} { return m.FamilyName }, false},
-		{"Vorname", 16, func(m MemberRow) interface{} { return m.FirstName }, false},
-		{"Alter", 7, func(m MemberRow) interface{} { return m.Age }, true},
-		{"Geburtsdatum", 14, func(m MemberRow) interface{} { return m.DateOfBirth }, true},
-		{"E-Mail", 28, func(m MemberRow) interface{} { return m.Email }, false},
-		{"Telefon", 16, func(m MemberRow) interface{} { return m.Phone }, false},
-		{"Mobil", 16, func(m MemberRow) interface{} { return m.Mobile }, false},
-		{"Straße", 22, func(m MemberRow) interface{} { return m.Street }, false},
-		{"PLZ", 7, func(m MemberRow) interface{} { return m.Zip }, true},
-		{"Stadt", 16, func(m MemberRow) interface{} { return m.City }, false},
-		{"Eintritt", 12, func(m MemberRow) interface{} { return m.JoinDate }, true},
-		{"Austritt", 12, func(m MemberRow) interface{} { return m.ResignationDate }, true},
-		{"Gruppen", 30, func(m MemberRow) interface{} { return m.Groups }, false},
-		{"Kürzel", 14, func(m MemberRow) interface{} { return m.GroupShorts }, false},
-		{"Kontoinhaber", 18, func(m MemberRow) interface{} { return m.BankAccountOwner }, false},
-		{"IBAN", 24, func(m MemberRow) interface{} { return m.IBAN }, false},
-		{"BIC", 12, func(m MemberRow) interface{} { return m.BIC }, true},
+		{"Nr.", 8, func(m MemberRow) interface{} { return m.MembershipNumber }, true, ""},
+		{"Nachname", 18, func(m MemberRow) interface{} { return m.FamilyName }, false, ""},
+		{"Vorname", 16, func(m MemberRow) interface{} { return m.FirstName }, false, ""},
+		{"Alter", 7, func(m MemberRow) interface{} { return m.Age }, true, ""},
+		{"Geburtsdatum", 14, func(m MemberRow) interface{} { return m.DateOfBirth }, true, ""},
+		{"E-Mail", 28, func(m MemberRow) interface{} { return m.Email }, false, ""},
+		{"Telefon", 16, func(m MemberRow) interface{} { return m.Phone }, false, ""},
+		{"Mobil", 16, func(m MemberRow) interface{} { return m.Mobile }, false, ""},
+		{"Straße", 22, func(m MemberRow) interface{} { return m.Street }, false, ""},
+		{"PLZ", 7, func(m MemberRow) interface{} { return m.Zip }, true, ""},
+		{"Stadt", 16, func(m MemberRow) interface{} { return m.City }, false, ""},
+		{"Eintritt", 12, func(m MemberRow) interface{} { return m.JoinDate }, true, ""},
+		{"Austritt", 12, func(m MemberRow) interface{} { return m.ResignationDate }, true, ""},
+		{"Gruppen", 30, func(m MemberRow) interface{} { return m.Groups }, false, ""},
+		{"Kürzel", 14, func(m MemberRow) interface{} { return m.GroupShorts }, false, ""},
+		{"Kontoinhaber", 18, func(m MemberRow) interface{} { return m.BankAccountOwner }, false, "finance"},
+		{"IBAN", 24, func(m MemberRow) interface{} { return m.IBAN }, false, "finance"},
+		{"BIC", 12, func(m MemberRow) interface{} { return m.BIC }, true, "finance"},
 	}
+
+	a.mu.RLock()
+	activeModules := a.activeModules
+	a.mu.RUnlock()
+
+	isModuleActive := func(mod string) bool {
+		if mod == "" {
+			return true
+		}
+		if len(activeModules) == 0 {
+			return true
+		}
+		for _, m := range activeModules {
+			if m == mod {
+				return true
+			}
+		}
+		return false
+	}
+
+	var filteredCols []colDef
+	for _, col := range cols {
+		if isModuleActive(col.module) {
+			filteredCols = append(filteredCols, col)
+		}
+	}
+	cols = filteredCols
 
 	f.SetRowHeight(sheet, 1, 22)
 
@@ -437,6 +466,7 @@ func memberToRow(m model.Member) MemberRow {
 	}
 	return MemberRow{
 		ID:               m.ID,
+		ContactDetailsID: cd.ID,
 		MembershipNumber: m.MembershipNumber,
 		FirstName:        cd.FirstName,
 		FamilyName:       cd.FamilyName,

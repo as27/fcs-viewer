@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { esc, escHtml, formatTimestamp } from './utils.js';
 import { GetMembers, ReloadMembers, ExportMembersExcel } from '../wailsjs/go/main/App';
+import { isModuleActive } from './settings.js';
 
 let _render, _refreshContent;
 
@@ -25,16 +26,20 @@ export function filterAndSort() {
 }
 
 export function renderMembers() {
-    const visibleCols = state.columns.filter(c => c.visible);
+    const allowedCols = state.columns.filter(c => !c.module || isModuleActive(c.module));
+    const visibleCols = allowedCols.filter(c => c.visible);
     const rows = filterAndSort();
 
     const colMenu = state.colMenuOpen ? `
         <div class="col-toggle-menu">
-            ${state.columns.map((c, i) => `
+            ${state.columns.map((c, i) => {
+                if (c.module && !isModuleActive(c.module)) return '';
+                return `
                 <label>
                     <input type="checkbox" data-col="${i}" ${c.visible ? 'checked' : ''}>
                     ${esc(c.label)}
-                </label>`).join('')}
+                </label>`;
+            }).join('')}
         </div>` : '';
 
     const tableHtml = rows.length === 0

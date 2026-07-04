@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,6 +41,9 @@ type InvoiceRow struct {
 	Charge            float64 `json:"charge"`
 	Chargeback        float64 `json:"chargeback"`
 	RefNumber         string  `json:"refNumber"`
+	MemberID          int     `json:"memberId"`
+	MemberFirstName   string  `json:"memberFirstName"`
+	MemberLastName    string  `json:"memberLastName"`
 }
 
 // InvoiceItemRow is a flat invoice line-item record for the frontend.
@@ -197,30 +201,44 @@ func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], err
 	}
 
 	cachedMembers, err := a.GetMembers(department)
-	if err != nil {
-		return CachedData[[]InvoiceRow]{}, fmt.Errorf("Mitglieder konnten nicht geladen werden: %w", err)
-	}
-	members := cachedMembers.Data
-
-	type namePair struct{ first, family string }
-	pairs := make([]namePair, 0, len(members))
-	for _, m := range members {
-		f := strings.ToLower(strings.TrimSpace(m.FirstName))
-		l := strings.ToLower(strings.TrimSpace(m.FamilyName))
-		if f != "" || l != "" {
-			pairs = append(pairs, namePair{f, l})
-		}
+	var members []MemberRow
+	hasMembers := false
+	if err == nil {
+		members = cachedMembers.Data
+		hasMembers = true
 	}
 
-	memberMatch := func(receiver string) bool {
-		r := strings.ToLower(strings.TrimSpace(receiver))
-		for _, p := range pairs {
-			if p.family != "" && strings.Contains(r, p.family) &&
-				(p.first == "" || strings.Contains(r, p.first)) {
-				return true
+	contactToMember := make(map[int]MemberRow)
+	type memberNameInfo struct {
+		member MemberRow
+		first  string
+		last   string
+	}
+	var nameInfos []memberNameInfo
+
+	if hasMembers {
+		nameInfos = make([]memberNameInfo, 0, len(members))
+		for _, m := range members {
+			if m.ContactDetailsID != 0 {
+				contactToMember[m.ContactDetailsID] = m
+			}
+			f := strings.ToLower(strings.TrimSpace(m.FirstName))
+			l := strings.ToLower(strings.TrimSpace(m.FamilyName))
+			if f != "" || l != "" {
+				nameInfos = append(nameInfos, memberNameInfo{member: m, first: f, last: l})
 			}
 		}
-		return false
+	}
+
+	findMemberByName := func(receiver string) (MemberRow, bool) {
+		r := strings.ToLower(strings.TrimSpace(receiver))
+		for _, info := range nameInfos {
+			if info.last != "" && strings.Contains(r, info.last) &&
+				(info.first == "" || strings.Contains(r, info.first)) {
+				return info.member, true
+			}
+		}
+		return MemberRow{}, false
 	}
 
 	var rows []InvoiceRow
@@ -228,9 +246,34 @@ func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], err
 		if float64(inv.PaymentDifference) == 0 {
 			continue
 		}
-		if !memberMatch(derefStr(inv.Receiver)) {
-			continue
+
+		// Extract Contact Details ID from RelatedAddress URL if present (e.g. "/api/v2.0/contact-details/123")
+		var invoiceContactDetailsID int
+		if inv.RelatedAddress != nil {
+			urlStr := *inv.RelatedAddress
+			if idx := strings.LastIndex(urlStr, "/"); idx != -1 {
+				idStr := urlStr[idx+1:]
+				if parsedID, err := strconv.Atoi(idStr); err == nil {
+					invoiceContactDetailsID = parsedID
+				}
+			}
 		}
+
+		var matchedMember MemberRow
+		memberFound := false
+		if hasMembers {
+			if invoiceContactDetailsID != 0 {
+				matchedMember, memberFound = contactToMember[invoiceContactDetailsID]
+			}
+			if !memberFound {
+				matchedMember, memberFound = findMemberByName(derefStr(inv.Receiver))
+			}
+			// If we have member list, we filter out invoices that do not belong to department members
+			if !memberFound {
+				continue
+			}
+		}
+
 		rows = append(rows, InvoiceRow{
 			ID:                inv.ID,
 			InvNumber:         inv.InvNumber,
@@ -242,6 +285,9 @@ func (a *App) loadOpenInvoices(department string) (CachedData[[]InvoiceRow], err
 			Charge:            float64(inv.Charges.Charge),
 			Chargeback:        float64(inv.Charges.ChargeBack),
 			RefNumber:         inv.RefNumber,
+			MemberID:          matchedMember.ID,
+			MemberFirstName:   matchedMember.FirstName,
+			MemberLastName:    matchedMember.FamilyName,
 		})
 	}
 

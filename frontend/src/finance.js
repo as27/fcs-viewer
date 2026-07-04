@@ -93,9 +93,14 @@ function registerWindowFunctions() {
         const search = (state.financeInvoiceSearch || '').toLowerCase();
         const filtered = (state.financeInvoices || []).filter(inv => {
             if (!search) return true;
+            const member = (state.members || []).find(m => m.id === inv.memberId);
+            const memberName = member ? `${member.firstName || ''} ${member.familyName || ''}`.toLowerCase() : '';
+            const payerName = member ? (member.bankAccountOwner || '').toLowerCase() : '';
             return (inv.receiver || '').toLowerCase().includes(search) ||
                    (inv.invNumber || '').toLowerCase().includes(search) ||
-                   (inv.description || '').toLowerCase().includes(search);
+                   (inv.description || '').toLowerCase().includes(search) ||
+                   memberName.includes(search) ||
+                   payerName.includes(search);
         });
 
         const allExpanded = filtered.length > 0 && filtered.every(inv => state.expandedInvoices[inv.id]);
@@ -179,6 +184,22 @@ function registerWindowFunctions() {
     window.cashPaymentBack = function() {
         state.cashPaymentModal.confirmed = false;
         state.cashPaymentError = '';
+        _render();
+    };
+
+    window.showMemberDetail = function(memberId) {
+        if (!memberId) return;
+        const member = (state.members || []).find(m => m.id === memberId);
+        if (member) {
+            state.memberDetailModal = member;
+            _render();
+        } else {
+            alert("Mitgliedsdaten konnten nicht in der aktuellen Liste gefunden werden.");
+        }
+    };
+
+    window.closeMemberDetailModal = function() {
+        state.memberDetailModal = null;
         _render();
     };
 }
@@ -345,9 +366,14 @@ function renderFinanceInvoices() {
     const search = (state.financeInvoiceSearch || '').toLowerCase();
     const filtered = (state.financeInvoices || []).filter(inv => {
         if (!search) return true;
+        const member = (state.members || []).find(m => m.id === inv.memberId);
+        const memberName = member ? `${member.firstName || ''} ${member.familyName || ''}`.toLowerCase() : '';
+        const payerName = member ? (member.bankAccountOwner || '').toLowerCase() : '';
         return (inv.receiver || '').toLowerCase().includes(search) ||
                (inv.invNumber || '').toLowerCase().includes(search) ||
-               (inv.description || '').toLowerCase().includes(search);
+               (inv.description || '').toLowerCase().includes(search) ||
+               memberName.includes(search) ||
+               payerName.includes(search);
     });
 
     const totalOpen = filtered.reduce((s, inv) => s + inv.paymentDifference, 0);
@@ -366,10 +392,22 @@ function renderFinanceInvoices() {
         const cashIcon = isModuleActive('finance-handkasse')
             ? `<button class="btn-cash-pay" title="Barzahlung erfassen" onclick="event.stopPropagation();openCashPaymentModal(${inv.id})">💵</button>`
             : '';
+        const memberIcon = inv.memberId
+            ? `<button class="btn-member-detail" title="Mitgliedsdetails anzeigen" onclick="event.stopPropagation();showMemberDetail(${inv.memberId})">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="vertical-align:-1px">
+                    <circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+               </button>`
+            : '';
+        const member = (state.members || []).find(m => m.id === inv.memberId);
+        const memberName = member ? `${member.firstName || ''} ${member.familyName || ''}`.trim() : '—';
+        const payerName = member && member.bankAccountOwner ? member.bankAccountOwner.trim() : '—';
         const mainRow = `<tr class="invoice-row${isExpanded ? ' invoice-row-expanded' : ''}" onclick="toggleInvoiceItems(${inv.id})" style="cursor:pointer">
             <td><span style="margin-right:6px;color:#888">${expandIcon}</span>${escHtml(inv.invNumber || '')}</td>
             <td>${formatDate(inv.date)}</td>
-            <td class="col-receiver">${escHtml(inv.receiver || '')}</td>
+            <td class="col-member">${memberIcon}${escHtml(memberName)}</td>
+            <td class="col-payer">${escHtml(payerName)}</td>
             <td class="col-desc">${escHtml(inv.description || '')}</td>
             <td style="text-align:right;font-variant-numeric:tabular-nums">${totalFmt}</td>
             <td class="amount-neg" style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${diffFmt}${cashIcon}</td>
@@ -415,12 +453,12 @@ function renderFinanceInvoices() {
                 : `<div class="invoice-detail-loading" style="color:#888">Keine Positionen gefunden.</div>`;
         }
 
-        const detailRow = `<tr class="invoice-detail-row"><td colspan="6" class="invoice-detail-cell">${innerHtml}</td></tr>`;
+        const detailRow = `<tr class="invoice-detail-row"><td colspan="7" class="invoice-detail-cell">${innerHtml}</td></tr>`;
         return [mainRow, detailRow];
     }).join('');
 
     const empty = filtered.length === 0
-        ? `<tr><td colspan="6" style="padding:0">
+        ? `<tr><td colspan="7" style="padding:0">
              <div class="empty-state" style="padding: 40px 20px">
                <div class="empty-state-icon">🧾</div>
                <div class="empty-state-title">${state.financeInvoices.length === 0 ? 'Keine offenen Rechnungen' : 'Keine Treffer'}</div>
@@ -461,7 +499,7 @@ function renderFinanceInvoices() {
             <div class="table-scroll">
             <table class="data-table">
                 <thead><tr>
-                    <th>Nr.</th><th>Datum</th><th class="col-receiver">Empfänger</th><th class="col-desc">Beschreibung</th>
+                    <th>Nr.</th><th>Datum</th><th class="col-member">Mitglied</th><th class="col-payer">Zahler</th><th class="col-desc">Beschreibung</th>
                     <th style="text-align:right">Gesamt</th><th style="text-align:right">Offen</th>
                 </tr></thead>
                 <tbody>${rows}${empty}</tbody>
@@ -689,4 +727,85 @@ export function loadFinanceAccounts() {
             state.financeAccountsLoading = false;
             _render();
         });
+}
+
+export function renderMemberDetailModal() {
+    const m = state.memberDetailModal;
+    if (!m) return '';
+
+    const formatVal = (v) => v ? escHtml(v) : '<span style="color:#aaa;font-style:italic">keine Angabe</span>';
+    const formatDateVal = (v) => v ? formatDate(v) : '<span style="color:#aaa;font-style:italic">—</span>';
+
+    return `
+    <div class="modal-backdrop" onclick="closeMemberDetailModal()">
+        <div class="modal modal-member-detail" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">Mitgliedsdetails</span>
+                <button class="modal-close" onclick="closeMemberDetailModal()">✕</button>
+            </div>
+            <div class="modal-body" style="gap: 20px;">
+                <div class="member-detail-header">
+                    <div class="member-detail-avatar">
+                        <svg width="24" height="24" viewBox="0 0 16 16" fill="none">
+                            <circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="member-detail-name">${escHtml(m.firstName || '')} ${escHtml(m.familyName || '')}</div>
+                        <div class="member-detail-sub">Mitglieds-Nr: <strong>${m.membershipNumber || '—'}</strong></div>
+                    </div>
+                </div>
+
+                <div class="member-detail-sections">
+                    <div class="member-detail-section">
+                        <div class="member-section-title">Mitgliedschaft</div>
+                        <div class="member-detail-grid">
+                            <div class="detail-label">Eintritt</div>
+                            <div class="detail-value">${formatDateVal(m.joinDate)}</div>
+                            ${m.resignationDate ? `
+                            <div class="detail-label">Austritt</div>
+                            <div class="detail-value">${formatDateVal(m.resignationDate)}</div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="member-detail-section">
+                        <div class="member-section-title">Kontakt</div>
+                        <div class="member-detail-grid">
+                            <div class="detail-label">E-Mail</div>
+                            <div class="detail-value">${m.email ? `<a href="mailto:${escHtml(m.email)}" class="member-email-link">${escHtml(m.email)}</a>` : formatVal(m.email)}</div>
+                            <div class="detail-label">Telefon</div>
+                            <div class="detail-value">${formatVal(m.phone)}</div>
+                            <div class="detail-label">Mobil</div>
+                            <div class="detail-value">${formatVal(m.mobile)}</div>
+                        </div>
+                    </div>
+
+                    <div class="member-detail-section">
+                        <div class="member-section-title">Adresse</div>
+                        <div class="member-detail-grid">
+                            <div class="detail-label">Straße</div>
+                            <div class="detail-value">${formatVal(m.street)}</div>
+                            <div class="detail-label">Ort</div>
+                            <div class="detail-value">${m.zip || m.city ? `${escHtml(m.zip || '')} ${escHtml(m.city || '')}` : formatVal('')}</div>
+                        </div>
+                    </div>
+
+                    <div class="member-detail-section">
+                        <div class="member-section-title">Bankverbindung</div>
+                        <div class="member-detail-grid">
+                            <div class="detail-label">Inhaber</div>
+                            <div class="detail-value">${formatVal(m.bankAccountOwner)}</div>
+                            <div class="detail-label">IBAN</div>
+                            <div class="detail-value" style="font-family:monospace;font-size:0.9em;letter-spacing:0.02em;">${formatVal(m.iban)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeMemberDetailModal()">Schließen</button>
+            </div>
+        </div>
+    </div>`;
 }

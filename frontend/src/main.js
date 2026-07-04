@@ -7,7 +7,7 @@ import { esc, ICONS, getFontSize, applyFontSize, FONT_SIZE_MIN, FONT_SIZE_MAX, F
 import { renderMembers, loadMembers, doExportExcel, init as initMembers } from './members.js';
 import { renderOverview, loadOverview, init as initOverview } from './overview.js';
 import { renderCalendar, loadCalendarData, loadCalendarEvents, init as initCalendar } from './calendar.js';
-import { renderFinance, renderCashPaymentModal, attachCashPaymentListeners, loadFinanceOverview, loadFinanceAccounts, init as initFinance } from './finance.js';
+import { renderFinance, renderCashPaymentModal, renderMemberDetailModal, attachCashPaymentListeners, loadFinanceOverview, loadFinanceAccounts, init as initFinance } from './finance.js';
 import { renderInventory, loadInventoryOverview, attachInventoryListeners, init as initInventory } from './inventory.js';
 import { renderTasks, loadTasksOverview, attachTasksListeners, init as initTasks } from './tasks.js';
 import { renderProtocols, loadProtocolsOverview, attachProtocolsListeners, init as initProtocols } from './protocols.js';
@@ -28,6 +28,7 @@ function render() {
             </div>
         </div>
         ${state.cashPaymentModal ? renderCashPaymentModal() : ''}
+        ${state.memberDetailModal ? renderMemberDetailModal() : ''}
     `;
     attachListeners();
     attachCashPaymentListeners();
