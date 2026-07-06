@@ -4,6 +4,18 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.11] - 2026-07-06
+
+### Hinzugefügt
+- **Übungsleiter-Modul (Trainer)**: Ein neues Modul zur Erfassung und Pflege von Trainer-Lizenzen, Sporthelfer-Bescheinigungen und deren Gültigkeitsdaten in easyVerein (Custom Fields).
+- **Zwei-Schritt Mitglied-Auswahl**: Ein performantes Auswahl-Modal mit Echtzeit-DOM-Filterung auf geladenen Abteilungsmitglieder-Daten (`state.members`) zur Vermeidung von Tastatur-Sperren beim Tippen.
+- **Nativer Datei-Upload/Download**: Integration von macOS-Dialogen zur Auswahl lokaler Lizenzen für den Upload und zum Herunterladen/Abspeichern hochgeladener Nachweise.
+
+### Behoben
+- **Beziehung-Zuordnungsfehler (Hyperlinked Fields)**: Die API-Felder `customField` und `userObject` bei `POST`/Multipart-Uploads werden nun korrekt als absolute URLs statt Integer-IDs übermittelt, um stillschweigende Validierungsfehler der API zu beheben.
+- **Save-Button Lock**: Behebung einer Sperre des Speichern-Buttons im Modal bei wiederholter Interaktion durch Zurücksetzen des Lade-Zustands.
+- **Formular-Eingabeverlust**: Behebung eines Datenverlustes, bei dem das Re-Rendering des Modals (beim Klick auf Speichern oder Datei-Auswahl/Löschen) die Eingaben zurückgesetzt hat, durch Zwischenspeichern im UI-State.
+
 ## [1.0.10] - 2026-07-04
 
 ### Hinzugefügt

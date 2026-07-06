@@ -8,6 +8,10 @@ export function CreateCashPayment(arg1:number,arg2:number,arg3:number,arg4:strin
 
 export function DeleteTask(arg1:number):Promise<main.CachedData_main_TaskOverview_>;
 
+export function DeleteTrainer(arg1:string,arg2:number):Promise<main.CachedData___main_TrainerRow_>;
+
+export function DownloadTrainerFile(arg1:string,arg2:string):Promise<string>;
+
 export function ExportInvoicesExcel(arg1:string):Promise<string>;
 
 export function ExportMembersExcel(arg1:string):Promise<string>;
@@ -44,6 +48,8 @@ export function GetTaskMetadata():Promise<main.TaskMetadata>;
 
 export function GetTasksOverview():Promise<main.CachedData_main_TaskOverview_>;
 
+export function GetTrainers(arg1:string):Promise<main.CachedData___main_TrainerRow_>;
+
 export function ReloadConfig():Promise<main.Settings>;
 
 export function ReloadInventory():Promise<main.CachedData_main_InventoryOverview_>;
@@ -56,4 +62,10 @@ export function ReloadProtocols():Promise<main.CachedData_main_ProtocolOverview_
 
 export function ReloadTasks():Promise<main.CachedData_main_TaskOverview_>;
 
+export function ReloadTrainers(arg1:string):Promise<main.CachedData___main_TrainerRow_>;
+
 export function SaveTask(arg1:main.TaskRow):Promise<main.CachedData_main_TaskOverview_>;
+
+export function SaveTrainer(arg1:string,arg2:main.TrainerRow,arg3:Record<string, string>):Promise<main.CachedData___main_TrainerRow_>;
+
+export function SelectTrainerFile():Promise<string>;

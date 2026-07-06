@@ -78,6 +78,11 @@ export const ICONS = {
         <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>`,
+    trainer: `<svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M4 12c0-2 2-3.5 4-3.5s4 1.5 4 3.5v3H4v-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M1 10h2M13 10h2M8 8.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>`,
     search: `<svg width="12" height="12" viewBox="0 0 16 16" fill="none">
         <circle cx="7" cy="7" r="5" stroke="#aaa" stroke-width="1.5"/>
         <path d="M11 11l3 3" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
@@ -90,5 +95,8 @@ export const ICONS = {
     </svg>`,
     trash: `<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
         <path d="M2 4h12M5 4V2.5A1.5 1.5 0 016.5 1h3A1.5 1.5 0 0111 2.5V4m-8.5 2v8.5A1.5 1.5 0 004 16h8a1.5 1.5 0 001.5-1.5V6M6 8.5v4M10 8.5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+    download: `<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M8 2v9m-3-3l3 3 3-3M2 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`,
 };

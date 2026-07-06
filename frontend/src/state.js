@@ -75,6 +75,16 @@ export const state = {
     protocolsLoading: false,
     protocolsError: '',
     protocolsUpdatedAt: '',
+    trainers: [],
+    trainersUpdatedAt: '',
+    trainerLoading: false,
+    trainerError: '',
+    trainerModalOpen: false,
+    trainerModalData: null,
+    trainerModalLoading: false,
+    trainerModalError: '',
+    trainerSelectedFilePaths: {}, // key: fieldDefID, value: localPath
+    trainerSearchMemberOpen: false,
     columns: [
         { key: 'membershipNumber', label: 'Nr.',           visible: true  },
         { key: 'familyName',       label: 'Nachname',      visible: true  },
@@ -105,5 +115,6 @@ export const PAGE_TITLES = {
     inventory: 'Inventar',
     tasks: 'Aufgaben',
     protocols: 'Protokolle',
+    trainer: 'Übungsleiter',
     settings: 'Einstellungen',
 };

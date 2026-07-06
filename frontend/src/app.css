@@ -1144,3 +1144,49 @@
 .member-email-link:hover {
     text-decoration: underline;
 }
+
+/* Autocomplete search helper for Trainer module */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    font-size: 0.93rem;
+    color: #333;
+    cursor: pointer;
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+}
+
+.file-upload-row {
+    background: #fafafa;
+    border: 1px dashed rgba(0,0,0,0.15);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 6px;
+}
+
+.trainer-member-item:hover {
+    background: #fffbea;
+}
+

@@ -188,6 +188,88 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class TrainerRow {
+	    memberId: number;
+	    membershipNumber: string;
+	    firstName: string;
+	    familyName: string;
+	    phone: string;
+	    email: string;
+	    lizenzBGueltigBis: string;
+	    lizenzBGueltigBisValId: number;
+	    lizenzBNachweis: string;
+	    lizenzBNachweisValId: number;
+	    lizenzCGueltigBis: string;
+	    lizenzCGueltigBisValId: number;
+	    lizenzCNachweis: string;
+	    lizenzCNachweisValId: number;
+	    sporthelferGueltigAb: string;
+	    sporthelferGueltigAbValId: number;
+	    sporthelfer: string;
+	    sporthelferValId: number;
+	    uebungsleiterDesc: string;
+	    uebungsleiterDescValId: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TrainerRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.memberId = source["memberId"];
+	        this.membershipNumber = source["membershipNumber"];
+	        this.firstName = source["firstName"];
+	        this.familyName = source["familyName"];
+	        this.phone = source["phone"];
+	        this.email = source["email"];
+	        this.lizenzBGueltigBis = source["lizenzBGueltigBis"];
+	        this.lizenzBGueltigBisValId = source["lizenzBGueltigBisValId"];
+	        this.lizenzBNachweis = source["lizenzBNachweis"];
+	        this.lizenzBNachweisValId = source["lizenzBNachweisValId"];
+	        this.lizenzCGueltigBis = source["lizenzCGueltigBis"];
+	        this.lizenzCGueltigBisValId = source["lizenzCGueltigBisValId"];
+	        this.lizenzCNachweis = source["lizenzCNachweis"];
+	        this.lizenzCNachweisValId = source["lizenzCNachweisValId"];
+	        this.sporthelferGueltigAb = source["sporthelferGueltigAb"];
+	        this.sporthelferGueltigAbValId = source["sporthelferGueltigAbValId"];
+	        this.sporthelfer = source["sporthelfer"];
+	        this.sporthelferValId = source["sporthelferValId"];
+	        this.uebungsleiterDesc = source["uebungsleiterDesc"];
+	        this.uebungsleiterDescValId = source["uebungsleiterDescValId"];
+	    }
+	}
+	export class CachedData___main_TrainerRow_ {
+	    updatedAt: string;
+	    data: TrainerRow[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CachedData___main_TrainerRow_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.updatedAt = source["updatedAt"];
+	        this.data = this.convertValues(source["data"], TrainerRow);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class LocationRow {
 	    id: number;
 	    name: string;
@@ -729,6 +811,7 @@ export namespace main {
 		    return a;
 		}
 	}
+	
 	
 	
 

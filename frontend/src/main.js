@@ -11,6 +11,7 @@ import { renderFinance, renderCashPaymentModal, renderMemberDetailModal, attachC
 import { renderInventory, loadInventoryOverview, attachInventoryListeners, init as initInventory } from './inventory.js';
 import { renderTasks, loadTasksOverview, attachTasksListeners, init as initTasks } from './tasks.js';
 import { renderProtocols, loadProtocolsOverview, attachProtocolsListeners, init as initProtocols } from './protocols.js';
+import { renderTrainer, loadTrainers, attachTrainerListeners, init as initTrainer } from './trainer.js';
 import { renderSettings, isModuleActive, loadSettings, doReloadConfig, doExportPublicKey, applyActiveModules, init as initSettings } from './settings.js';
 
 applyFontSize(getFontSize());
@@ -35,6 +36,7 @@ function render() {
     if (state.activeTab === 'inventory') attachInventoryListeners();
     if (state.activeTab === 'tasks') attachTasksListeners();
     if (state.activeTab === 'protocols') attachProtocolsListeners();
+    if (state.activeTab === 'trainer') attachTrainerListeners();
 }
 
 function refreshContent() {
@@ -44,6 +46,7 @@ function refreshContent() {
     if (state.activeTab === 'inventory') attachInventoryListeners();
     if (state.activeTab === 'tasks') attachTasksListeners();
     if (state.activeTab === 'protocols') attachProtocolsListeners();
+    if (state.activeTab === 'trainer') attachTrainerListeners();
 }
 
 function renderSidebar() {
@@ -76,6 +79,7 @@ function renderSidebar() {
                 ${isModuleActive('inventory') ? nav('inventory', ICONS.inventory, 'Inventar')  : ''}
                 ${isModuleActive('tasks')     ? nav('tasks',     ICONS.tasks,     'Aufgaben')  : ''}
                 ${isModuleActive('protocols') ? nav('protocols', ICONS.protocols, 'Protokolle'): ''}
+                ${isModuleActive('trainer')   ? nav('trainer',   ICONS.trainer,   'Übungsleiter'): ''}
             </div>
 
             <div class="nav-section">
@@ -127,6 +131,7 @@ function renderContent() {
     if (state.activeTab === 'inventory') return `<div class="members-layout">${renderInventory()}</div>`;
     if (state.activeTab === 'tasks') return `<div class="members-layout">${renderTasks()}</div>`;
     if (state.activeTab === 'protocols') return `<div class="members-layout">${renderProtocols()}</div>`;
+    if (state.activeTab === 'trainer') return `<div class="members-layout">${renderTrainer()}</div>`;
     return `<div class="content-scroll">${
         state.activeTab === 'overview'  ? renderOverview()  :
         renderSettings()
@@ -145,6 +150,7 @@ function attachListeners() {
             if (state.activeTab === 'inventory' && !state.inventoryData && !state.inventoryLoading) loadInventoryOverview();
             if (state.activeTab === 'tasks' && !state.tasksData && !state.tasksLoading) loadTasksOverview();
             if (state.activeTab === 'protocols' && !state.protocolsData && !state.protocolsLoading) loadProtocolsOverview();
+            if (state.activeTab === 'trainer' && state.trainers.length === 0 && !state.trainerLoading) loadTrainers();
             render();
         });
     });
@@ -164,8 +170,11 @@ function attachListeners() {
             state.expandedInvoices = {};
             state.invoiceItems = {};
             state.invoiceItemsLoading = {};
+            state.trainers = [];
+            state.trainerError = '';
             render();
             loadMembers(false);
+            if (state.activeTab === 'trainer') loadTrainers(false);
             if (state.calCalendars.length > 0) loadCalendarEvents();
         });
     }
@@ -350,6 +359,7 @@ initFinance(render, refreshContent);
 initInventory(render, refreshContent);
 initTasks(render, refreshContent);
 initProtocols(render, refreshContent);
+initTrainer(render, refreshContent);
 initSettings(render, refreshContent);
 
 render();

@@ -14,6 +14,14 @@ export function DeleteTask(arg1) {
   return window['go']['main']['App']['DeleteTask'](arg1);
 }
 
+export function DeleteTrainer(arg1, arg2) {
+  return window['go']['main']['App']['DeleteTrainer'](arg1, arg2);
+}
+
+export function DownloadTrainerFile(arg1, arg2) {
+  return window['go']['main']['App']['DownloadTrainerFile'](arg1, arg2);
+}
+
 export function ExportInvoicesExcel(arg1) {
   return window['go']['main']['App']['ExportInvoicesExcel'](arg1);
 }
@@ -86,6 +94,10 @@ export function GetTasksOverview() {
   return window['go']['main']['App']['GetTasksOverview']();
 }
 
+export function GetTrainers(arg1) {
+  return window['go']['main']['App']['GetTrainers'](arg1);
+}
+
 export function ReloadConfig() {
   return window['go']['main']['App']['ReloadConfig']();
 }
@@ -110,6 +122,18 @@ export function ReloadTasks() {
   return window['go']['main']['App']['ReloadTasks']();
 }
 
+export function ReloadTrainers(arg1) {
+  return window['go']['main']['App']['ReloadTrainers'](arg1);
+}
+
 export function SaveTask(arg1) {
   return window['go']['main']['App']['SaveTask'](arg1);
+}
+
+export function SaveTrainer(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SaveTrainer'](arg1, arg2, arg3);
+}
+
+export function SelectTrainerFile() {
+  return window['go']['main']['App']['SelectTrainerFile']();
 }
