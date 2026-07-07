@@ -8,12 +8,16 @@ echo "macOS (arm64)..."
 wails build -platform darwin/arm64
 rm -rf "build/bin/fcs-viewer-mac-arm64-$VERSION.app"
 mv build/bin/fcs-viewer.app "build/bin/fcs-viewer-mac-arm64-$VERSION.app"
+echo "Ad-hoc Signierung (arm64)..."
+codesign --force --deep --sign - "build/bin/fcs-viewer-mac-arm64-$VERSION.app"
 
 # Ab Version 1.0.11 sollen keine Intel Macs mehr unterstützt werden.
 # echo "macOS (amd64)..."
 # wails build -platform darwin/amd64
 # rm -rf "build/bin/fcs-viewer-mac-amd64-$VERSION.app"
 # mv build/bin/fcs-viewer.app "build/bin/fcs-viewer-mac-amd64-$VERSION.app"
+# echo "Ad-hoc Signierung (amd64)..."
+# codesign --force --deep --sign - "build/bin/fcs-viewer-mac-amd64-$VERSION.app"
 
 echo "Windows (amd64)..."
 wails build -platform windows/amd64

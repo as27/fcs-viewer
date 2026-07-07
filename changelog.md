@@ -4,6 +4,11 @@ Alle wichtigen Änderungen werden hier dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt verwendet [Semantic Versioning 2.0.0](https://semver.org/lang/de/).
 
+## [1.0.12] - 2026-07-07
+
+### Hinzugefügt
+- **macOS Ad-hoc-Signierung**: Im Build-Prozess (`build.sh`) wird die macOS App nun nach dem Kompilieren automatisch ad-hoc signiert (`codesign --force --deep --sign -`), um die Ausführung auf anderen Systemen zu erleichtern und eine grundlegende Anwendungsidentität zu vergeben.
+
 ## [1.0.11] - 2026-07-06
 
 ### Hinzugefügt
